@@ -10,6 +10,7 @@ namespace AshesOfTheEarth.Entities
         private static ulong _nextId = 0;
         public ulong Id { get; private set; }
         public string Tag { get; set; }
+        public bool IsActive { get; set; } = true;
 
         private readonly Dictionary<Type, IComponent> _components;
 

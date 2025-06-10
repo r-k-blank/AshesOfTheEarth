@@ -16,11 +16,19 @@ namespace AshesOfTheEarth.Gameplay.Systems
     {
         private EntityManager _entityManager;
         private IGameplayMediator _gameplayMediator;
+        private CollectibleFactory _collectibleFactory;
         private Random _random = new Random();
 
         public HarvestingSystem(EntityManager entityManager)
         {
             _entityManager = entityManager;
+            _collectibleFactory = ServiceLocator.Get<CollectibleFactory>();
+            if (_collectibleFactory == null)
+            {
+                _collectibleFactory = new CollectibleFactory();
+                ServiceLocator.Register<CollectibleFactory>(_collectibleFactory);
+                _collectibleFactory.InitializePool();
+            }
         }
 
         private void EnsureMediator()
@@ -42,8 +50,8 @@ namespace AshesOfTheEarth.Gameplay.Systems
             Entity closestInteractableEntity = null;
             float minDistanceSq = interactionRange * interactionRange;
 
-            // Căutăm întâi Collectibles
-            var collectibleEntities = _entityManager.GetAllEntitiesWithComponents<TransformComponent, CollectibleComponent, ColliderComponent>();
+            var collectibleEntities = _entityManager.GetAllEntitiesWithComponents<TransformComponent, CollectibleComponent, ColliderComponent>()
+                                          .Where(e => e.IsActive);
             foreach (var collectibleEntity in collectibleEntities)
             {
                 var collectibleTransform = collectibleEntity.GetComponent<TransformComponent>();
@@ -59,14 +67,11 @@ namespace AshesOfTheEarth.Gameplay.Systems
             if (closestInteractableEntity != null && closestInteractableEntity.HasComponent<CollectibleComponent>())
             {
                 AttemptCollectItem(closestInteractableEntity, playerEntity);
-                // Cooldown-ul pentru interacțiune generală este setat în PlayerControllerComponent.InitiateInteraction
-                // Nu este nevoie de o animație specifică sau cooldown suplimentar aici, e o acțiune instant.
                 return;
             }
 
-            // Dacă nu s-a găsit niciun Collectible, încercăm să recoltăm o resursă (logica existentă)
-            minDistanceSq = interactionRange * interactionRange; // Resetăm distanța pentru resurse
-            closestInteractableEntity = null; // Resetăm entitatea
+            minDistanceSq = interactionRange * interactionRange;
+            closestInteractableEntity = null;
 
             var harvestableEntities = _entityManager.GetAllEntitiesWithComponents<TransformComponent, ResourceSourceComponent, ColliderComponent>();
             foreach (var resourceEntity in harvestableEntities)
@@ -89,13 +94,8 @@ namespace AshesOfTheEarth.Gameplay.Systems
             {
                 AttemptHarvest(closestInteractableEntity, playerEntity, gameTime);
             }
-            else if (!closestInteractableEntity?.HasComponent<CollectibleComponent>() ?? true)
-            {
-                System.Diagnostics.Debug.WriteLine("No harvestable or collectible entity in range for interaction.");
-            }
         }
 
-        // Metodă nouă pentru colectarea itemelor de pe jos
         private bool AttemptCollectItem(Entity collectibleEntity, Entity playerEntity)
         {
             var collectibleComp = collectibleEntity.GetComponent<CollectibleComponent>();
@@ -108,19 +108,13 @@ namespace AshesOfTheEarth.Gameplay.Systems
 
             if (added)
             {
-                System.Diagnostics.Debug.WriteLine($"Player collected {itemStack.Quantity} x {itemStack.Data?.Name ?? itemStack.Type.ToString()} from the ground.");
-                _entityManager.RemoveEntity(collectibleEntity);
+                _collectibleFactory.ReturnCollectibleToPool(collectibleEntity);
                 EnsureMediator();
                 _gameplayMediator.Notify(this, GameplayEvent.ItemCollected, playerEntity, itemStack);
                 return true;
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"Could not add {itemStack.Quantity} x {itemStack.Data?.Name ?? itemStack.Type.ToString()} to inventory (full?).");
-                return false;
-            }
+            return false;
         }
-
 
         private bool AttemptHarvest(Entity resourceEntity, Entity playerEntity, GameTime gameTime)
         {
@@ -156,17 +150,14 @@ namespace AshesOfTheEarth.Gameplay.Systems
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"Cannot harvest {resourceSource.ResourceName}. Required tool category: {resourceSource.RequiredToolCategory} not found in inventory.");
                     return false;
                 }
             }
 
-            if (!playerStats.TryUseStamina(3f * (1f / toolEffectiveness))) // More effective tools use less stamina per "hit value"
+            if (!playerStats.TryUseStamina(3f * (1f / toolEffectiveness)))
             {
-                System.Diagnostics.Debug.WriteLine("Harvest failed: Not enough stamina.");
                 return false;
             }
-
 
             string currentFacing = PlayerControllerComponent.GetFacingDirectionFromAnimation(playerAnimation.Controller.CurrentAnimationName, playerSprite.Effects);
             string harvestAnimName = "Attack_" + currentFacing;
@@ -189,13 +180,10 @@ namespace AshesOfTheEarth.Gameplay.Systems
                 damageToResource = resourceSource.MaxHealth;
             }
 
-
             resourceSource.TakeDamage(damageToResource);
-            System.Diagnostics.Debug.WriteLine($"Harvesting {resourceSource.ResourceName} with tool effectiveness {toolEffectiveness}. Health: {resourceSource.Health}/{resourceSource.MaxHealth}");
 
             if (resourceSource.Depleted)
             {
-                System.Diagnostics.Debug.WriteLine($"{resourceSource.ResourceName} depleted.");
                 foreach (var dropInfo in resourceSource.PossibleDrops)
                 {
                     if (_random.NextDouble() < dropInfo.Chance)
@@ -207,11 +195,8 @@ namespace AshesOfTheEarth.Gameplay.Systems
                             bool added = playerInventory.AddItem(collectedStack.Type, collectedStack.Quantity);
                             if (added)
                             {
-                                System.Diagnostics.Debug.WriteLine($"Player collected {amountToDrop} x {dropInfo.Item}");
                                 _gameplayMediator.Notify(this, GameplayEvent.ItemCollected, playerEntity, collectedStack);
                             }
-                            else
-                                System.Diagnostics.Debug.WriteLine($"Could not add {amountToDrop} x {dropInfo.Item} to inventory (full?).");
                         }
                     }
                 }

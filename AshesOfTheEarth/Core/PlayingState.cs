@@ -195,6 +195,22 @@ namespace AshesOfTheEarth.Core
             if (_lightSystem != null) _timeManager.Subscribe(_lightSystem);
             _uiManager.OnTimeChanged(_timeManager);
             _uiManager.OnDayPhaseChanged(_timeManager.CurrentDayPhase);
+            var collectibleFactoryInstance = ServiceLocator.Get<CollectibleFactory>();
+            if (collectibleFactoryInstance != null)
+            {
+                // Adaugă o verificare în CollectibleFactory.InitializePool pentru a nu re-inițializa dacă pool-ul există deja
+                collectibleFactoryInstance.InitializePool();
+            }
+            else
+            {
+                // Acest caz nu ar trebui să apară dacă ai înregistrat corect în Game1
+                System.Diagnostics.Debug.WriteLine("CRITICAL: CollectibleFactory not found in ServiceLocator for pool initialization.");
+                // Poți încerca să o creezi și să o înregistrezi aici ca un fallback de urgență, dar e mai bine să fie în Game1.
+                // collectibleFactoryInstance = new CollectibleFactory();
+                // ServiceLocator.Register<CollectibleFactory>(collectibleFactoryInstance);
+                // collectibleFactoryInstance.InitializePool();
+            }
+            
 
             _isInitialized = true;
         }
@@ -233,10 +249,7 @@ namespace AshesOfTheEarth.Core
             if (playerTransform == null) return;
 
             var collectibleFactory = ServiceLocator.Get<CollectibleFactory>();
-            if (collectibleFactory == null)
-            {
-                return;
-            }
+            
             var initialResources = new List<(ItemType type, int quantity, Vector2 offset)>
             {
                 (ItemType.WoodLog, 2, new Vector2(50, -20)),
@@ -258,6 +271,11 @@ namespace AshesOfTheEarth.Core
                     if (_positionValidator.IsPositionSafe(collectible))
                     {
                         _entityManager.AddEntity(collectible);
+                    }
+                    else
+                    {
+                        // Dacă poziția nu e sigură, returnează obiectul în pool pentru a evita pierderea lui
+                        collectibleFactory.ReturnCollectibleToPool(collectible);
                     }
                 }
             }
