@@ -125,7 +125,7 @@ namespace AshesOfTheEarth.Core.Input.Command
             else if (controller.IsAttacking) reason = "Player is attacking";
             else if (_direction == Vector2.Zero) reason = "No movement direction";
             else if (entity.GetComponent<TransformComponent>() == null) reason = "No TransformComponent";
-            System.Diagnostics.Debug.WriteLine($"Move command gameplay conditions not met. Reason: {reason}");
+            //System.Diagnostics.Debug.WriteLine($"Move command gameplay conditions not met. Reason: {reason}");
         }
     }
 }

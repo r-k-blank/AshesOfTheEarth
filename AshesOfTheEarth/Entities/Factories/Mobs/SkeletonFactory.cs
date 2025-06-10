@@ -40,15 +40,43 @@ namespace AshesOfTheEarth.Entities.Factories.Mobs
             }
 
             Entity skeleton = new Entity(skeletonType.ToString());
-            skeleton.AddComponent(new TransformComponent { Position = position, Scale = Vector2.One * 1.8f });
-            skeleton.AddComponent(new SpriteComponent());
+            var mobTransform = new TransformComponent { Position = position, Scale = Vector2.One * 1.8f }; // Scala ta
+            skeleton.AddComponent(mobTransform);
+
+            SpriteSheet activeSheet = (skeletonType == MobType.SkeletonSpearman) ? _spearmanSheet : _warriorSheet;
+            if (activeSheet == null) { /* gestionează eroare */ return null; }
+
+            Dictionary<string, AnimationData> animations = (skeletonType == MobType.SkeletonSpearman)
+                ? GetSpearmanAnimations(activeSheet)
+                : GetWarriorAnimations(activeSheet);
+            var animComp = new AnimationComponent(activeSheet, animations);
+            skeleton.AddComponent(animComp);
+
+
+            var spriteComp = new SpriteComponent();
+            skeleton.AddComponent(spriteComp);
             skeleton.AddComponent(new AIComponent(position));
 
             var loot = new List<LootDropInfo> { new LootDropInfo(ItemType.StoneShard, 1, 3, 0.8f) }; // Placeholder Bone item
             skeleton.AddComponent(new LootTableComponent(loot));
 
-            var collider = new ColliderComponent(new Rectangle(0, 0, (int)(32 * 1.8f), (int)(50 * 1.8f)), new Vector2(0, 10 * 1.8f), true);
-            skeleton.AddComponent(collider);
+            int frameW = 128; // activeSheet.FrameWidth;
+            int frameH = 128; // activeSheet.FrameHeight;
+
+            // Scheleții sunt mai subțiri
+            float colliderWidthPercentage = 0.30f;
+            float colliderHeightPercentage = 0.65f; // Partea principală a oaselor
+
+            float actualColliderWidth = frameW * colliderWidthPercentage * mobTransform.Scale.X;
+            float actualColliderHeight = frameH * colliderHeightPercentage * mobTransform.Scale.Y;
+
+            Vector2 mobColliderOffset = new Vector2(0, -actualColliderHeight / 2f);
+
+            skeleton.AddComponent(new ColliderComponent(
+                new Rectangle(0, 0, (int)actualColliderWidth, (int)actualColliderHeight),
+                mobColliderOffset,
+                true
+            ));
 
             if (skeletonType == MobType.SkeletonSpearman)
             {

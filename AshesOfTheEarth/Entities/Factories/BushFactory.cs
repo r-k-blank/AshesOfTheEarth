@@ -81,7 +81,7 @@ namespace AshesOfTheEarth.Entities.Factories
                 isSolid: false
             ));
 
-            System.Diagnostics.Debug.WriteLine($"Created {bushType} at {position}");
+            //System.Diagnostics.Debug.WriteLine($"Created {bushType} at {position}");
             return bush;
         }
 

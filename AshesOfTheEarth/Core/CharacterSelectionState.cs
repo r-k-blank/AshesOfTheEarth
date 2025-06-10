@@ -39,7 +39,7 @@ namespace AshesOfTheEarth.Core
             }
             catch (System.Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading character selection assets: {ex.Message}");
+                //System.Diagnostics.Debug.WriteLine($"Error loading character selection assets: {ex.Message}");
             }
 
             _characters = new List<CharacterSelectionData>
@@ -56,11 +56,11 @@ namespace AshesOfTheEarth.Core
                 {
                     Texture2D sheetTexture = content.Load<Texture2D>(characterData.SpriteSheetPath);
                     _characterSpriteSheets.Add(new SpriteSheet(sheetTexture, characterData.FrameWidth, characterData.FrameHeight));
-                    System.Diagnostics.Debug.WriteLine($"Loaded spritesheet for {characterData.Name}");
+                    //System.Diagnostics.Debug.WriteLine($"Loaded spritesheet for {characterData.Name}");
                 }
                 catch (System.Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error loading spritesheet for {characterData.Name} from {characterData.SpriteSheetPath}: {ex.Message}");
+                    //System.Diagnostics.Debug.WriteLine($"Error loading spritesheet for {characterData.Name} from {characterData.SpriteSheetPath}: {ex.Message}");
                     _characterSpriteSheets.Add(null); // Adaugă null dacă nu se poate încărca, pentru a menține indexarea
                 }
             }

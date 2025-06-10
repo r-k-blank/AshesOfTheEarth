@@ -51,17 +51,37 @@ namespace AshesOfTheEarth.Entities.Factories.Mobs
             }
 
             Entity minotaur = new Entity(minotaurType.ToString());
-            minotaur.AddComponent(new TransformComponent { Position = position, Scale = Vector2.One * 1.8f });
-            minotaur.AddComponent(new SpriteComponent());
+            var mobTransform = new TransformComponent { Position = position, Scale = Vector2.One * 1.8f }; // Scala ta
+            minotaur.AddComponent(mobTransform);
+
+            var animComp = new AnimationComponent(activeSheet, GetMinotaurAnimations(activeSheet));
+            minotaur.AddComponent(animComp);
+
+            var spriteComp = new SpriteComponent();
+            minotaur.AddComponent(spriteComp);
             minotaur.AddComponent(new AnimationComponent(activeSheet, GetMinotaurAnimations(activeSheet)));
             minotaur.AddComponent(new AIComponent(position));
 
             var loot = new List<LootDropInfo> { new LootDropInfo(ItemType.WoodLog, 1, 2, 0.9f) }; // Placeholder MinotaurHorn
             minotaur.AddComponent(new LootTableComponent(loot));
 
-            var collider = new ColliderComponent(new Rectangle(0, 0, (int)(40 * 2f), (int)(60 * 2f)), new Vector2(0, 15 * 2f), true);
-            minotaur.AddComponent(collider);
+            int frameW = 128; // activeSheet.FrameWidth;
+            int frameH = 128; // activeSheet.FrameHeight;
 
+            // Minotaurii sunt masivi
+            float colliderWidthPercentage = 0.5f;  // Mai lați
+            float colliderHeightPercentage = 0.75f; // Corp solid, destul de înalt
+
+            float actualColliderWidth = frameW * colliderWidthPercentage * mobTransform.Scale.X;
+            float actualColliderHeight = frameH * colliderHeightPercentage * mobTransform.Scale.Y;
+
+            Vector2 mobColliderOffset = new Vector2(0, -actualColliderHeight / 2f);
+
+            minotaur.AddComponent(new ColliderComponent(
+                new Rectangle(0, 0, (int)actualColliderWidth, (int)actualColliderHeight),
+                mobColliderOffset,
+                true
+            ));
             float health = 100f;
             float damage = 20f;
             float speed = 50f;

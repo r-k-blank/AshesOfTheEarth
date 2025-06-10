@@ -134,7 +134,7 @@ namespace AshesOfTheEarth.Core
             if (_isInitialized) return;
             var aiSystemInstance = ServiceLocator.Get<AISystem>();
             aiSystemInstance?.InvalidatePlayerReference();
-            System.Diagnostics.Debug.WriteLine("[PlayingState.InitializeState] START: Player reference in AISystem invalidated.");
+            //System.Diagnostics.Debug.WriteLine("[PlayingState.InitializeState] START: Player reference in AISystem invalidated.");
             _player = null;
 
             if (_initialMemento != null)
@@ -145,21 +145,35 @@ namespace AshesOfTheEarth.Core
                 RestoreFromMemento(_initialMemento);
                 _currentWorldSeed = _initialMemento.WorldSeed;
             }
-            else
+            else // Joc Nou
             {
-                _currentWorldSeed = Environment.TickCount;
-                _worldManager.GenerateWorld(_currentWorldSeed, Utils.Settings.DefaultWorldWidth, Utils.Settings.DefaultWorldHeight);
+                // Folosește seed-ul din setări dacă e specificat, altfel generează unul nou
+                _currentWorldSeed = Utils.Settings.UseCustomSeed ? Utils.Settings.WorldSeed : Environment.TickCount;
+                if (Utils.Settings.UseCustomSeed && Utils.Settings.WorldSeed == 0) // Dacă e custom dar 0, consideră random
+                {
+                    _currentWorldSeed = Environment.TickCount;
+                    Utils.Settings.WorldSeed = _currentWorldSeed; // Salvează-l pentru afișare
+                }
+
+                _worldManager.GenerateWorld(_currentWorldSeed,
+                                            Utils.Settings.GetActualWorldWidth(),
+                                            Utils.Settings.GetActualWorldHeight());
                 _timeManager.ResetTime();
 
-                PlayerFactory playerFactory = ServiceLocator.Get<PlayerFactory>(); // Obține factory din ServiceLocator
+                PlayerFactory playerFactory = ServiceLocator.Get<PlayerFactory>();
                 Vector2 desiredPlayerPos = new Vector2(_worldManager.TileMap.WidthInPixels / 2f, _worldManager.TileMap.HeightInPixels / 2f);
-                _player = playerFactory.CreateEntity(desiredPlayerPos, _selectedCharacterSpriteSheetPath, _selectedCharacterAnimationType, _selectedCharacterFrameWidth, _selectedCharacterFrameHeight); // Pasează dimensiunile
 
-
+                // Preluăm setările de personaj din CharacterSelectionState (dacă există)
+                // sau folosim valorile default din PlayingState
+                _player = playerFactory.CreateEntity(desiredPlayerPos,
+                                                     _selectedCharacterSpriteSheetPath,
+                                                     _selectedCharacterAnimationType,
+                                                     _selectedCharacterFrameWidth,
+                                                     _selectedCharacterFrameHeight);
 
                 if (_player != null)
                 {
-                    _player.Tag = _selectedCharacterName;
+                    _player.Tag = _selectedCharacterName; // Setează numele corect
                     var playerTransform = _player.GetComponent<TransformComponent>();
                     Vector2 safePlayerPos = _positionValidator.FindSafeSpawnPositionNearby(_player, playerTransform.Position, 200f, 50);
                     playerTransform.Position = safePlayerPos;
@@ -167,6 +181,9 @@ namespace AshesOfTheEarth.Core
                     _entityManager.AddEntity(_player);
                     _camera.Follow(_player);
                     SpawnInitialResourcesNearPlayer(_player);
+
+                    // Aici ai putea aplica setările de dificultate la player sau la lume
+                    ApplyDifficultySettings(_player, Utils.Settings.SelectedDifficulty);
                 }
             }
             if (_player == null) _player = _entityManager.GetEntityByTag(_selectedCharacterName) ?? _entityManager.GetEntityByTag("Player");
@@ -180,6 +197,35 @@ namespace AshesOfTheEarth.Core
             _uiManager.OnDayPhaseChanged(_timeManager.CurrentDayPhase);
 
             _isInitialized = true;
+        }
+        private void ApplyDifficultySettings(Entity player, Utils.Settings.DifficultyOption difficulty)
+        {
+            if (player == null) return;
+            var healthComp = player.GetComponent<HealthComponent>();
+            var statsComp = player.GetComponent<StatsComponent>();
+
+            // Acest loc este și pentru a modifica parametrii de spawn ai mobilor, resurse etc.
+            // Pentru moment, modificăm doar player-ul ca exemplu.
+            //System.Diagnostics.Debug.WriteLine($"Applying difficulty: {difficulty}");
+
+            switch (difficulty)
+            {
+                case Utils.Settings.DifficultyOption.Easy:
+                    if (healthComp != null) healthComp.MaxHealth *= 1.2f; // Player mai rezistent
+                    if (statsComp != null) statsComp.StaminaRegenRate *= 1.5f; // Regenerare stamină mai rapidă
+                    // TODO: Scade damage-ul mobilor, crește drop-rate-ul resurselor etc.
+                    break;
+                case Utils.Settings.DifficultyOption.Normal:
+                    // Setările default sunt deja considerate "Normal"
+                    break;
+                case Utils.Settings.DifficultyOption.Hard:
+                    if (healthComp != null) healthComp.MaxHealth *= 0.8f; // Player mai fragil
+                    if (statsComp != null) statsComp.StaminaRegenRate *= 0.75f;
+                    // TODO: Crește damage-ul mobilor, scade drop-rate-ul etc.
+                    break;
+            }
+            if (healthComp != null) healthComp.CurrentHealth = healthComp.MaxHealth; // Setează viața la maximul nou
+            if (statsComp != null) statsComp.CurrentStamina = statsComp.MaxStamina; // Și stamina
         }
         private void SpawnInitialResourcesNearPlayer(Entity player)
         {
@@ -344,7 +390,7 @@ namespace AshesOfTheEarth.Core
             }
             var aiSystemInstance = ServiceLocator.Get<AISystem>();
             aiSystemInstance?.InvalidatePlayerReference();
-            System.Diagnostics.Debug.WriteLine("[PlayingState.UnloadContent] Player reference in AISystem invalidated.");
+            //System.Diagnostics.Debug.WriteLine("[PlayingState.UnloadContent] Player reference in AISystem invalidated.");
             ServiceLocator.Unregister<PlayingState>();
             _entityManager?.ClearAllEntities();
             _worldManager?.UnloadContent();
@@ -437,8 +483,10 @@ namespace AshesOfTheEarth.Core
             return new GameStateMemento
             {
                 WorldSeed = _currentWorldSeed,
-                WorldWidth = _worldManager.TileMap?.Width ?? Utils.Settings.DefaultWorldWidth,
-                WorldHeight = _worldManager.TileMap?.Height ?? Utils.Settings.DefaultWorldHeight,
+                WorldWidth = _worldManager.TileMap?.Width ?? Utils.Settings.GetActualWorldWidth(),
+                WorldHeight = _worldManager.TileMap?.Height ?? Utils.Settings.GetActualWorldHeight(),
+                SavedWorldSize = Utils.Settings.SelectedWorldSize, // Salvează setarea curentă
+                SavedDifficulty = Utils.Settings.SelectedDifficulty,
                 TimeState = timeMemento,
                 PlayerState = playerMemento,
                 EntityStates = entityMementos
@@ -448,7 +496,8 @@ namespace AshesOfTheEarth.Core
         private void RestoreFromMemento(GameStateMemento memento)
         {
             if (memento == null) { _initialMemento = null; InitializeState(); return; }
-
+            Utils.Settings.SelectedWorldSize = memento.SavedWorldSize;
+            Utils.Settings.SelectedDifficulty = memento.SavedDifficulty;
             _selectedCharacterSpriteSheetPath = memento.PlayerState?.SelectedCharacterSpriteSheetPath ?? "Sprites/Player/Gotoku_spritelist";
             _selectedCharacterName = memento.PlayerState?.SelectedCharacterName ?? "Gotoku";
             _selectedCharacterAnimationType = memento.PlayerState?.SelectedCharacterAnimationType ?? PlayerAnimationSetType.Gotoku; // NOU
@@ -482,6 +531,14 @@ namespace AshesOfTheEarth.Core
                 _player.GetComponent<PlayerControllerComponent>()?.Initialize(_player);
                 _entityManager.AddEntity(_player);
                 _camera.Follow(_player);
+                ApplyDifficultySettings(_player, memento.SavedDifficulty);
+            }
+            else
+            {
+                //System.Diagnostics.Debug.WriteLine("[PlayingState.RestoreFromMemento] CRITICAL: Player could not be created from memento.");
+                _initialMemento = null; // Previne încercări repetate de restaurare eșuate
+                _isInitialized = false; // Forțează o reinițializare la un joc nou la următorul Update
+                return;
             }
             var aiSystemInstance = ServiceLocator.Get<AISystem>(); // Obține instanța
             aiSystemInstance?.InvalidatePlayerReference();

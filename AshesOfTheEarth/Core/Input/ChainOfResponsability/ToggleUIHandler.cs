@@ -34,14 +34,14 @@ namespace AshesOfTheEarth.Core.Input.ChainOfResponsibility
             if (inputManager.IsKeyPressed(Keys.I) || inputManager.IsKeyPressed(Keys.Tab))
             {
                 uiManager.ToggleInventoryScreen();
-                System.Diagnostics.Debug.WriteLine($"ToggleUIHandler: Inventory toggled. Visible: {uiManager.IsInventoryVisible()}");
+                //System.Diagnostics.Debug.WriteLine($"ToggleUIHandler: Inventory toggled. Visible: {uiManager.IsInventoryVisible()}");
                 return IdleCommand.Instance;
             }
 
             if (inputManager.IsKeyPressed(Keys.C))
             {
                 uiManager.ToggleCraftingScreen();
-                System.Diagnostics.Debug.WriteLine($"ToggleUIHandler: Crafting toggled. Visible: {uiManager.IsCraftingScreenVisible()}");
+                //System.Diagnostics.Debug.WriteLine($"ToggleUIHandler: Crafting toggled. Visible: {uiManager.IsCraftingScreenVisible()}");
                 return IdleCommand.Instance;
             }
 

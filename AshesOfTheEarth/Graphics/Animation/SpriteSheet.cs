@@ -45,7 +45,7 @@ namespace AshesOfTheEarth.Graphics.Animation
         {
             if (frameIndex < 0 || frameIndex >= _sourceRectangles.Length)
             {
-                System.Diagnostics.Debug.WriteLine($"Error: Invalid frame index {frameIndex} requested for spritesheet with {TotalFrames} frames.");
+                //System.Diagnostics.Debug.WriteLine($"Error: Invalid frame index {frameIndex} requested for spritesheet with {TotalFrames} frames.");
                 // Returnează primul cadru sau un dreptunghi gol ca fallback
                 return _sourceRectangles.Length > 0 ? _sourceRectangles[0] : Rectangle.Empty;
             }

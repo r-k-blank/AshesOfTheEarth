@@ -28,7 +28,7 @@ namespace AshesOfTheEarth.Core.Input.Command
             {
                 playerController.IsInPlacementMode = false;
                 playerController.CurrentPlacingItemType = Gameplay.Items.ItemType.None;
-                System.Diagnostics.Debug.WriteLine("Exited placement mode.");
+                //System.Diagnostics.Debug.WriteLine("Exited placement mode.");
             }
         }
         protected override void OnActionSuccess(Entity entity, GameTime gameTime) { }

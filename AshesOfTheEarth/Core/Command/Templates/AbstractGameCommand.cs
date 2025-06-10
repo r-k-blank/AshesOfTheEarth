@@ -54,15 +54,15 @@ namespace AshesOfTheEarth.Core.Input.Command.Templates
 
         protected virtual void OnPreConditionFailed(Entity entity, GameTime gameTime)
         {
-            System.Diagnostics.Debug.WriteLine($"Command {this.GetType().Name} pre-conditions failed.");
+            //System.Diagnostics.Debug.WriteLine($"Command {this.GetType().Name} pre-conditions failed.");
         }
         protected virtual void OnGameplayConditionFailed(Entity entity, GameTime gameTime)
         {
-            System.Diagnostics.Debug.WriteLine($"Command {this.GetType().Name} gameplay conditions failed.");
+            //System.Diagnostics.Debug.WriteLine($"Command {this.GetType().Name} gameplay conditions failed.");
         }
         protected virtual void OnActionSuccess(Entity entity, GameTime gameTime)
         {
-            System.Diagnostics.Debug.WriteLine($"Command {this.GetType().Name} executed successfully.");
+            //System.Diagnostics.Debug.WriteLine($"Command {this.GetType().Name} executed successfully.");
         }
 
         protected virtual bool AllowsExecutionInInventory() => false;

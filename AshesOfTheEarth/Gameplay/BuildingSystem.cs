@@ -35,11 +35,11 @@ namespace AshesOfTheEarth.Gameplay
                 {
                     // Selectează un blueprint default la intrare (ex: primul)
                     _selectedBlueprint = _availableBlueprints.Count > 0 ? _availableBlueprints[0] : null;
-                    System.Diagnostics.Debug.WriteLine($"Entered Building Mode. Selected: {_selectedBlueprint?.DisplayName ?? "None"}");
+                    //System.Diagnostics.Debug.WriteLine($"Entered Building Mode. Selected: {_selectedBlueprint?.DisplayName ?? "None"}");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("Exited Building Mode.");
+                    //System.Diagnostics.Debug.WriteLine("Exited Building Mode.");
                     _selectedBlueprint = null;
                 }
             }
@@ -54,7 +54,7 @@ namespace AshesOfTheEarth.Gameplay
                 if (input.IsLeftMouseButtonPressed() /* && canPlace */)
                 {
                     // PlaceStructure(mouseWorldPos, _selectedBlueprint);
-                    System.Diagnostics.Debug.WriteLine($"Attempting to place {_selectedBlueprint.DisplayName} (Not Implemented)");
+                    //System.Diagnostics.Debug.WriteLine($"Attempting to place {_selectedBlueprint.DisplayName} (Not Implemented)");
                 }
             }
         }

@@ -69,7 +69,7 @@ namespace AshesOfTheEarth.Core.Input.Command
 
         protected override void OnGameplayConditionFailed(Entity entity, GameTime gameTime)
         {
-            System.Diagnostics.Debug.WriteLine($"ConsumeItemCommand: Gameplay conditions failed for slot {_slotIndex}.");
+
         }
     }
 }

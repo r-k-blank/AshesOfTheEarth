@@ -85,8 +85,14 @@ namespace AshesOfTheEarth.Entities.Factories.Animals
             }
 
             Entity animal = new Entity(entityTag);
-            animal.AddComponent(new TransformComponent { Position = position, Scale = scale });
-            animal.AddComponent(new SpriteComponent());
+            var mobTransform = new TransformComponent { Position = position, Scale = scale }; // 'scale' este deja definit în switch-ul tău
+            animal.AddComponent(mobTransform);
+
+            var animComp = new AnimationComponent(activeSheet, GetAnimalAnimations(animalType, activeSheet));
+            animal.AddComponent(animComp);
+
+            var spriteComp = new SpriteComponent();
+            animal.AddComponent(spriteComp);
             animal.AddComponent(new AnimationComponent(activeSheet, GetAnimalAnimations(animalType, activeSheet)));
 
             var aiComp = new AIComponent(position) { MaxPatrolRadius = 200f };
@@ -97,7 +103,39 @@ namespace AshesOfTheEarth.Entities.Factories.Animals
             // Animals are non-aggressive, so MobStatsComponent is mainly for their speed and detection.
             // They won't use Damage or AttackRange unless they become aggressive variants.
             animal.AddComponent(new MobStatsComponent { MovementSpeed = moveSpeed, AggroRange = aggroRange, RunSpeedMultiplier = 2.0f });
-            animal.AddComponent(new ColliderComponent(colliderRect, colliderOffset, true));
+            int frameW = activeSheet.FrameWidth;   // Ia dimensiunile din spritesheet-ul activ
+            int frameH = activeSheet.FrameHeight;
+
+            float colliderWidthPercentage = 0f;
+            float colliderHeightPercentage = 0f;
+
+            // Setează procentajele specifice pentru fiecare animal
+            switch (animalType)
+            {
+                case MobType.Deer:
+                    colliderWidthPercentage = 0.4f;  // Cerbii sunt mai lungi
+                    colliderHeightPercentage = 0.7f; // Și mai înalți
+                    break;
+                case MobType.Rabbit:
+                    colliderWidthPercentage = 0.5f;  // Iepurii sunt mici și rotunzi
+                    colliderHeightPercentage = 0.6f;
+                    break;
+                default: // Fallback sau eroare
+                    colliderWidthPercentage = 0.4f;
+                    colliderHeightPercentage = 0.6f;
+                    break;
+            }
+
+            float actualColliderWidth = frameW * colliderWidthPercentage * mobTransform.Scale.X;
+            float actualColliderHeight = frameH * colliderHeightPercentage * mobTransform.Scale.Y;
+
+            Vector2 mobColliderOffset = new Vector2(0, -actualColliderHeight / 2f);
+
+            animal.AddComponent(new ColliderComponent(
+                new Rectangle(0, 0, (int)actualColliderWidth, (int)actualColliderHeight),
+                mobColliderOffset,
+                true // Animalele sunt de obicei solide
+            ));
 
             return animal;
         }

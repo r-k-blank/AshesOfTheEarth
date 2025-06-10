@@ -28,7 +28,7 @@ namespace AshesOfTheEarth.Core
               
                 var content = ServiceLocator.Get<ContentManager>();
                 CurrentState?.LoadContent(content);
-                System.Diagnostics.Debug.WriteLine($"GameState changed to: {CurrentState?.GetType().Name}");
+                //System.Diagnostics.Debug.WriteLine($"GameState changed to: {CurrentState?.GetType().Name}");
             }
 
             

@@ -26,11 +26,11 @@ namespace AshesOfTheEarth.Core.Input.Command
         }
         protected override void OnGameplayConditionFailed(Entity entity, GameTime gameTime)
         {
-            System.Diagnostics.Debug.WriteLine("Interact command gameplay conditions not met (e.g. on cooldown, attacking).");
+            //System.Diagnostics.Debug.WriteLine("Interact command gameplay conditions not met (e.g. on cooldown, attacking).");
         }
         protected override void OnPreConditionFailed(Entity entity, GameTime gameTime)
         {
-            System.Diagnostics.Debug.WriteLine("Interact command pre-conditions not met (e.g. inventory open).");
+            //System.Diagnostics.Debug.WriteLine("Interact command pre-conditions not met (e.g. inventory open).");
         }
     }
 }

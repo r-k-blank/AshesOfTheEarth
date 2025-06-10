@@ -23,7 +23,6 @@ namespace AshesOfTheEarth.Core.Input.Command
             var stats = entity.GetComponent<StatsComponent>();
             if (stats != null && !stats.TryUseStamina(5f))
             {
-                System.Diagnostics.Debug.WriteLine("Attack failed: Not enough stamina.");
                 return false;
             }
             return true;

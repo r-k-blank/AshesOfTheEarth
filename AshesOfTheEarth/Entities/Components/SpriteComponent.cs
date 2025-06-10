@@ -42,7 +42,7 @@ namespace AshesOfTheEarth.Entities.Components
                 texToDraw = animation.SpriteSheet.Texture;
                 sourceRect = animation.CurrentSourceRectangle;
                 // Setează originea la centrul frame-ului din spritesheet
-                drawOrigin = new Vector2(animation.SpriteSheet.FrameWidth / 2f, animation.SpriteSheet.FrameHeight / 2f);
+                drawOrigin = new Vector2(animation.SpriteSheet.FrameWidth / 2f, animation.SpriteSheet.FrameHeight);
             }
             else if (Texture != null)
             {
@@ -50,7 +50,10 @@ namespace AshesOfTheEarth.Entities.Components
                 texToDraw = Texture;
                 sourceRect = new Rectangle(0, 0, Texture.Width, Texture.Height); // Tot dreptunghiul
                                                                                  // Asigură-te că originea a fost setată corect în constructor sau manual
-                if (Origin == Vector2.Zero) drawOrigin = new Vector2(Texture.Width / 2f, Texture.Height / 2f);
+                if (Origin == Vector2.Zero && Texture != null) // Default la bază dacă nu e setat
+                    drawOrigin = new Vector2(Texture.Width / 2f, Texture.Height);
+                else
+                    drawOrigin = Origin;
             }
 
             // Desenează doar dacă avem ce și unde

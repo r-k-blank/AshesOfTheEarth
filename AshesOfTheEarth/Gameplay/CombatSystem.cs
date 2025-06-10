@@ -46,7 +46,7 @@ namespace AshesOfTheEarth.Gameplay
 
             if (playerTransform == null || playerInventory == null || animationComp == null)
             {
-                System.Diagnostics.Debug.WriteLine("CombatSystem.ProcessPlayerAttack: Missing critical components on player.");
+                //System.Diagnostics.Debug.WriteLine("CombatSystem.ProcessPlayerAttack: Missing critical components on player.");
                 return;
             }
 
@@ -75,7 +75,7 @@ namespace AshesOfTheEarth.Gameplay
 
             if (Settings.DebugShowColliders && _pixelTexture != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] Player Attack Hitbox: {playerAttackHitbox} (Dir: {attackDirection}, Range: {attackRange})");
+                //System.Diagnostics.Debug.WriteLine($"[DEBUG] Player Attack Hitbox: {playerAttackHitbox} (Dir: {attackDirection}, Range: {attackRange})");
                 // Adaugă aici logica de a pasa playerAttackHitbox către un sistem de desenare debug, dacă ai unul.
                 // Exemplu: ServiceLocator.Get<DebugDrawSystem>()?.AddRectangle(playerAttackHitbox, Color.Orange, 1);
             }
@@ -96,7 +96,7 @@ namespace AshesOfTheEarth.Gameplay
                     var mobAI = mob.GetComponent<AIComponent>();
 
                     mobHealth.TakeDamage(baseDamage);
-                    System.Diagnostics.Debug.WriteLine($"PLAYER dealt {baseDamage} DMG to {mob.Tag}. Mob HP: {mobHealth.CurrentHealth}/{mobHealth.MaxHealth}");
+                    //System.Diagnostics.Debug.WriteLine($"PLAYER dealt {baseDamage} DMG to {mob.Tag}. Mob HP: {mobHealth.CurrentHealth}/{mobHealth.MaxHealth}");
 
                     _gameplayMediator.Notify(this, GameplayEvent.EntityDamaged, mob, baseDamage, gameTime);
 
@@ -173,14 +173,14 @@ namespace AshesOfTheEarth.Gameplay
                             Rectangle mobAttackBox = CalculateMobAttackHitbox(mobTransform, mobStats, mobSprite, mobAnim);
                             if (Settings.DebugShowColliders && _pixelTexture != null)
                             {
-                                System.Diagnostics.Debug.WriteLine($"[DEBUG] Mob ({mob.Tag}) Attack Hitbox: {mobAttackBox}");
+                                //System.Diagnostics.Debug.WriteLine($"[DEBUG] Mob ({mob.Tag}) Attack Hitbox: {mobAttackBox}");
                             }
 
                             if (playerCollider.GetWorldBounds(playerTransform).Intersects(mobAttackBox))
                             {
                                 playerHealth.TakeDamage(mobStats.Damage);
                                 _gameplayMediator.Notify(this, GameplayEvent.PlayerDamaged, player, mobStats.Damage, gameTime);
-                                System.Diagnostics.Debug.WriteLine($"{mob.Tag} dealt {mobStats.Damage} DMG to PLAYER. Player HP: {playerHealth.CurrentHealth}/{playerHealth.MaxHealth}");
+                                //System.Diagnostics.Debug.WriteLine($"{mob.Tag} dealt {mobStats.Damage} DMG to PLAYER. Player HP: {playerHealth.CurrentHealth}/{playerHealth.MaxHealth}");
                                 mobAI.DamageAppliedThisAttackCycle = true;
                             }
                         }

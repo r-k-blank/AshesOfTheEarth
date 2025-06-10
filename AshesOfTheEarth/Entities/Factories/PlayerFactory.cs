@@ -57,11 +57,10 @@ namespace AshesOfTheEarth.Entities.Factories
             player.AddComponent(new StatsComponent(100f, 100f) { StaminaRegenRate = 50f, StaminaDrainRateRun = 20f });
             player.AddComponent(new InventoryComponent(20));
 
-            float playerColliderWidth = 128f * 0.3f * player.GetComponent<TransformComponent>().Scale.X;
-            float playerColliderHeight = 128f * 0.5f * player.GetComponent<TransformComponent>().Scale.Y;
-            Vector2 playerColliderOffset = new Vector2(0, 128f * 0.2f * player.GetComponent<TransformComponent>().Scale.Y);
+            float playerColliderWidth = frameWidth * 0.25f * player.GetComponent<TransformComponent>().Scale.X;
+            float playerColliderHeight = frameHeight * 0.5f * player.GetComponent<TransformComponent>().Scale.Y;
+            Vector2 playerColliderOffset = new Vector2(0, -playerColliderHeight / 2f);
             player.AddComponent(new ColliderComponent(new Rectangle(0, 0, (int)playerColliderWidth, (int)playerColliderHeight), playerColliderOffset, true));
-
             player.AddComponent(new LightEmitterComponent(radius: 180f, intensity: 0.6f, color: new Color(255, 220, 150), isActive: false, flickerIntensity: 0.05f, flickerSpeed: 7f));
 
             System.Diagnostics.Debug.WriteLine($"Player entity created at {position} using spritesheet: {spriteSheetPath}");

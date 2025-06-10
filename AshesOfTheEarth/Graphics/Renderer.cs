@@ -9,6 +9,7 @@ using AshesOfTheEarth.Utils;
 using AshesOfTheEarth.Gameplay.Lighting;
 using System;
 using Microsoft.Xna.Framework.Content;
+using System.Linq;
 
 namespace AshesOfTheEarth.Graphics
 {
@@ -98,7 +99,9 @@ namespace AshesOfTheEarth.Graphics
         public void DrawEntities(EntityManager entityManager, SpriteBatch spriteBatch)
         {
             var renderableEntities = entityManager.GetAllEntitiesWithComponents<TransformComponent, SpriteComponent>();
-            foreach (var entity in renderableEntities)
+            var sortedEntities = renderableEntities.OrderBy(e => e.GetComponent<TransformComponent>().Position.Y).ToList();
+
+            foreach (var entity in sortedEntities) // Desenează în ordinea sortată
             {
                 var transform = entity.GetComponent<TransformComponent>();
                 var sprite = entity.GetComponent<SpriteComponent>();

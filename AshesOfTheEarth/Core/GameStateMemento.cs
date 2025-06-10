@@ -14,10 +14,15 @@ namespace AshesOfTheEarth.Core
         public TimeMemento TimeState { get; set; }
         public PlayerMemento PlayerState { get; set; }
         public List<EntityMemento> EntityStates { get; set; }
+        public Utils.Settings.WorldSizeOption SavedWorldSize { get; set; }
+        public Utils.Settings.DifficultyOption SavedDifficulty { get; set; }
 
         public GameStateMemento()
         {
             EntityStates = new List<EntityMemento>();
+            // Setează valori default la creare, dacă e cazul
+            SavedWorldSize = Utils.Settings.WorldSizeOption.Medium;
+            SavedDifficulty = Utils.Settings.DifficultyOption.Normal;
         }
     }
 

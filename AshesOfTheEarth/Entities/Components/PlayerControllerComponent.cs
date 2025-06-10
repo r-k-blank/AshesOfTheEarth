@@ -172,14 +172,33 @@ namespace AshesOfTheEarth.Entities.Components
             var playerTransform = entity.GetComponent<TransformComponent>();
             var playerCollider = entity.GetComponent<ColliderComponent>();
 
-            if (playerCollider == null || playerTransform == null || _worldManager == null)
+            if (_worldManager == null) return true;
+
+            // Calculează poziția picioarelor la locația țintă
+            Vector2 feetPosition = targetPosition;
+            if (playerCollider != null && playerTransform != null) // Asigură-te că playerTransform nu e null aici
             {
-                return _worldManager?.IsPositionWalkable(targetPosition) ?? true;
+                // Presupunând că playerTransform.Position este centrul sprite-ului la animațiile curente,
+                // și playerCollider.Offset este relativ la acest centru,
+                // partea de jos a coliderului ar fi la:
+                // targetPosition.Y + playerCollider.Offset.Y + (playerCollider.Bounds.Height / 2f)
+                feetPosition = new Vector2(
+                    targetPosition.X + playerCollider.Offset.X, // Centrul X al coliderului
+                    targetPosition.Y + playerCollider.Offset.Y + playerCollider.Bounds.Height / 2f // Partea de jos Y a coliderului
+                );
+            }
+            // else, dacă nu există colider, folosește targetPosition (mai puțin precis)
+
+            if (!_worldManager.IsPositionWalkable(feetPosition)) // Verifică la picioare
+            {
+                // System.Diagnostics.Debug.WriteLine($"[CanMoveTo] Tile at feet {feetPosition} (from target {targetPosition}) is not walkable.");
+                return false;
             }
 
-            if (!_worldManager.IsPositionWalkable(targetPosition))
+            // Verificarea coliziunii cu alte entități solide (pare OK)
+            if (playerCollider == null || playerTransform == null) // playerTransform deja verificat mai sus
             {
-                return false;
+                return true; // Fără colider, se poate mișca dacă tile-ul e mersibil
             }
 
             Rectangle futurePlayerBounds = new Rectangle(
@@ -189,6 +208,8 @@ namespace AshesOfTheEarth.Entities.Components
                 playerCollider.Bounds.Height
             );
 
+            // Optimizare: Obține entitățile solide o singură dată per frame în AISystem și paseaz-o sau acceseaz-o global
+            // Pentru moment, lăsăm așa, dar e un punct de optimizare.
             var nearbySolidEntities = _entityManager.GetAllEntitiesWithComponents<TransformComponent, ColliderComponent>()
                                                  .Where(e => e != entity && e.GetComponent<ColliderComponent>().IsSolid);
 
@@ -198,12 +219,12 @@ namespace AshesOfTheEarth.Entities.Components
                 var solidCollider = solidEntity.GetComponent<ColliderComponent>();
                 if (futurePlayerBounds.Intersects(solidCollider.GetWorldBounds(solidTransform)))
                 {
+                    // System.Diagnostics.Debug.WriteLine($"[CanMoveTo] Collision with solid entity {solidEntity.Tag} at future bounds.");
                     return false;
                 }
             }
             return true;
         }
-
         public static string GetFacingDirectionFromAnimation(string animName, SpriteEffects currentEffects)
         {
             if (string.IsNullOrEmpty(animName)) return "Down";

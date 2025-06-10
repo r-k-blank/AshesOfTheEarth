@@ -50,16 +50,37 @@ namespace AshesOfTheEarth.Entities.Factories.Mobs
             }
 
             Entity gargoyle = new Entity(gargoyleType.ToString());
-            gargoyle.AddComponent(new TransformComponent { Position = position, Scale = Vector2.One * 1.8f });
-            gargoyle.AddComponent(new SpriteComponent());
+            var mobTransform = new TransformComponent { Position = position, Scale = Vector2.One * 1.8f }; // Scala ta
+            gargoyle.AddComponent(mobTransform);
+
+            var animComp = new AnimationComponent(activeSheet, GetGargoyleAnimations(activeSheet));
+            gargoyle.AddComponent(animComp);
+
+            var spriteComp = new SpriteComponent();
+            gargoyle.AddComponent(spriteComp);
             gargoyle.AddComponent(new AnimationComponent(activeSheet, GetGargoyleAnimations(activeSheet)));
             gargoyle.AddComponent(new AIComponent(position));
 
             var loot = new List<LootDropInfo> { new LootDropInfo(ItemType.IronOre, 1, 1, 0.7f) }; // Placeholder GargoyleShard
             gargoyle.AddComponent(new LootTableComponent(loot));
 
-            var collider = new ColliderComponent(new Rectangle(0, 0, (int)(38 * 1.9f), (int)(55 * 1.9f)), new Vector2(0, 8 * 1.9f), true);
-            gargoyle.AddComponent(collider);
+            int frameW = 128; // activeSheet.FrameWidth;
+            int frameH = 128; // activeSheet.FrameHeight;
+
+            // Gargoilii pot fi mai lați și mai solizi
+            float colliderWidthPercentage = 0.45f;
+            float colliderHeightPercentage = 0.7f; // Partea solidă a corpului
+
+            float actualColliderWidth = frameW * colliderWidthPercentage * mobTransform.Scale.X;
+            float actualColliderHeight = frameH * colliderHeightPercentage * mobTransform.Scale.Y;
+
+            Vector2 mobColliderOffset = new Vector2(0, -actualColliderHeight / 2f);
+
+            gargoyle.AddComponent(new ColliderComponent(
+                new Rectangle(0, 0, (int)actualColliderWidth, (int)actualColliderHeight),
+                mobColliderOffset,
+                true
+            ));
 
             gargoyle.AddComponent(new HealthComponent(70f));
             var mobStats = new MobStatsComponent { Damage = 15f, AttackRange = 100f, AggroRange = 220f, MovementSpeed = 65f };

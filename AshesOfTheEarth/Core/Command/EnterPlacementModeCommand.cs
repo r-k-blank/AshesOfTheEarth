@@ -23,7 +23,7 @@ namespace AshesOfTheEarth.Core.Input.Command
 
             if (playerController == null || ItemRegistry.GetData(_itemToPlace)?.Category != ItemCategory.Placeable)
             {
-                System.Diagnostics.Debug.WriteLine($"EnterPlacementModeCommand: Failed. PlayerController null or item {_itemToPlace} not placeable.");
+                //System.Diagnostics.Debug.WriteLine($"EnterPlacementModeCommand: Failed. PlayerController null or item {_itemToPlace} not placeable.");
                 return;
             }
 
@@ -35,21 +35,21 @@ namespace AshesOfTheEarth.Core.Input.Command
             {
                 if (uiManager.IsInventoryVisible())
                 {
-                    System.Diagnostics.Debug.WriteLine("[EnterPlacementModeCommand] Inventory is visible, toggling OFF."); // LOG
+                    //System.Diagnostics.Debug.WriteLine("[EnterPlacementModeCommand] Inventory is visible, toggling OFF."); // LOG
                     uiManager.ToggleInventoryScreen();
                 }
                 if (uiManager.IsCraftingScreenVisible())
                 {
-                    System.Diagnostics.Debug.WriteLine("[EnterPlacementModeCommand] Crafting screen is visible, toggling OFF."); // LOG
+                    //System.Diagnostics.Debug.WriteLine("[EnterPlacementModeCommand] Crafting screen is visible, toggling OFF."); // LOG
                     uiManager.ToggleCraftingScreen();
                 }
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("[EnterPlacementModeCommand] ERROR: uiManager is null, cannot toggle UI screens."); // LOG
+                //System.Diagnostics.Debug.WriteLine("[EnterPlacementModeCommand] ERROR: uiManager is null, cannot toggle UI screens."); // LOG
             }
 
-            System.Diagnostics.Debug.WriteLine($"Entered placement mode for item: {_itemToPlace}");
+            //System.Diagnostics.Debug.WriteLine($"Entered placement mode for item: {_itemToPlace}");
         }
     }
 }

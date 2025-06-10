@@ -16,7 +16,7 @@ namespace AshesOfTheEarth.Entities.Components
             Quantity = quantity;
             if (Data == null && type != ItemType.None)
             {
-                System.Diagnostics.Debug.WriteLine($"Warning: ItemStack created for {type} but ItemData is null in registry.");
+                //System.Diagnostics.Debug.WriteLine($"Warning: ItemStack created for {type} but ItemData is null in registry.");
             }
         }
     }
@@ -51,7 +51,7 @@ namespace AshesOfTheEarth.Entities.Components
             ItemData data = ItemRegistry.GetData(itemType);
             if (data == null)
             {
-                System.Diagnostics.Debug.WriteLine($"Cannot add item: {itemType} not found in ItemRegistry.");
+                //System.Diagnostics.Debug.WriteLine($"Cannot add item: {itemType} not found in ItemRegistry.");
                 return false;
             }
 
@@ -86,7 +86,7 @@ namespace AshesOfTheEarth.Entities.Components
 
             if (quantityToAdd > 0)
             {
-                System.Diagnostics.Debug.WriteLine($"Inventory full. Could not add {quantityToAdd} of {itemType}.");
+                //System.Diagnostics.Debug.WriteLine($"Inventory full. Could not add {quantityToAdd} of {itemType}.");
                 return false;
             }
             return true;

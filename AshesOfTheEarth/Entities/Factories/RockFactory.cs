@@ -89,10 +89,10 @@ namespace AshesOfTheEarth.Entities.Factories
             float colliderHeight = texture.Height * 0.75f * transform.Scale.Y;
             Vector2 colliderOffset = new Vector2(0, texture.Height * 0.1f * transform.Scale.Y - colliderHeight * 0.4f);
             rock.AddComponent(new ColliderComponent(
-                new Rectangle(0, 0, (int)colliderWidth, (int)colliderHeight), colliderOffset, isSolid: true
+                new Rectangle(0, 0, (int)colliderWidth, (int)colliderHeight), colliderOffset, isSolid: false
             ));
 
-            System.Diagnostics.Debug.WriteLine($"Created {rockType} at {position}");
+            //System.Diagnostics.Debug.WriteLine($"Created {rockType} at {position}");
             return rock;
         }
     }

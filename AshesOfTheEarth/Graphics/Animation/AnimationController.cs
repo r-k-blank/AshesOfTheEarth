@@ -54,7 +54,7 @@ namespace AshesOfTheEarth.Graphics.Animation
             _isPlaying = (_currentAnimation.Frames.Count > 0);
             _animationFinished = false;
             IsPausedOnFrame = false; // Resetează la play
-            System.Diagnostics.Debug.WriteLine($"[AnimCtrl] Play: STARTED '{animation.Name}'. Duration: {animation.TotalDuration()}. Frames: {animation.Frames.Count}. IsLooping: {animation.IsLooping}");
+            //System.Diagnostics.Debug.WriteLine($"[AnimCtrl] Play: STARTED '{animation.Name}'. Duration: {animation.TotalDuration()}. Frames: {animation.Frames.Count}. IsLooping: {animation.IsLooping}");
 
             if (!_isPlaying && _currentAnimation.Frames.Count > 0)
             {

@@ -39,7 +39,8 @@ namespace AshesOfTheEarth.Entities.Factories
             if (_campfireSpriteSheet == null) return null;
 
             Entity campfire = new Entity("Campfire");
-            campfire.AddComponent(new TransformComponent { Position = position, Scale = Vector2.One * 3f });
+            var campfireTransform = new TransformComponent { Position = position, Scale = Vector2.One * 3f };
+            campfire.AddComponent(campfireTransform);
 
             var animations = new Dictionary<string, AnimationData>();
             var burningFrames = new List<AnimationFrame>();
@@ -52,17 +53,27 @@ namespace AshesOfTheEarth.Entities.Factories
             campfire.AddComponent(new AnimationComponent(_campfireSpriteSheet, animations));
             campfire.GetComponent<AnimationComponent>().PlayAnimation("Burning");
 
-            campfire.AddComponent(new SpriteComponent());
+            var spriteComp = new SpriteComponent(); 
+            campfire.AddComponent(spriteComp);
             campfire.AddComponent(new PlaceableComponent(ItemType.Campfire, 0));
 
+            int frameW = 32; // _campfireSpriteSheet.FrameWidth;
+            int frameH = 32; // _campfireSpriteSheet.FrameHeight;
 
-            var collider = new ColliderComponent(
-                new Rectangle(0, 0, (int)(28 * 1.5f), (int)(20 * 1.5f)),
-                new Vector2(0, 5 * 1.5f),
+            float colliderWidthPercentage = 0.8f; // Mai lat
+            float colliderHeightPercentage = 0.5f; // Partea de jos
+
+            float actualColliderWidth = frameW * colliderWidthPercentage * campfireTransform.Scale.X;
+            float actualColliderHeight = frameH * colliderHeightPercentage * campfireTransform.Scale.Y;
+
+            // Baza coliderului la Transform.Position.Y, extins în sus
+            Vector2 colliderOffset = new Vector2(0, -actualColliderHeight / 2f);
+
+            campfire.AddComponent(new ColliderComponent(
+                new Rectangle(0, 0, (int)actualColliderWidth, (int)actualColliderHeight),
+                colliderOffset,
                 true
-            );
-            campfire.AddComponent(collider);
-
+            ));
             campfire.AddComponent(new LightEmitterComponent(radius: 250f, intensity: 0.8f, color: new Color(255, 180, 100), flickerIntensity: 0.08f, flickerSpeed: 5f));
 
             return campfire;

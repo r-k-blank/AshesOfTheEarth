@@ -31,7 +31,7 @@ namespace AshesOfTheEarth.Core
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading main menu font or background: {ex.Message}");
+                //System.Diagnostics.Debug.WriteLine($"Error loading main menu font or background: {ex.Message}");
             }
 
             _saveLoadManager = ServiceLocator.Get<SaveLoadManager>();
@@ -43,12 +43,13 @@ namespace AshesOfTheEarth.Core
                 _menuItems.Add("Continue");
             }
             _menuItems.Add("New Game"); // Mutat sub Continue dacă există
+            _menuItems.Add("Settings");
             _menuItems.Add("Exit");
 
             _selectedItemIndex = 0;
 
             var graphicsDevice = ServiceLocator.Get<GraphicsDevice>();
-            if (_font != null) // Verifică dacă fontul s-a încărcat
+            if (graphicsDevice != null && _font != null)
             {
                 float totalMenuHeight = _menuItems.Count * _font.LineSpacing;
                 _menuPosition = new Vector2(
@@ -56,9 +57,9 @@ namespace AshesOfTheEarth.Core
                     (graphicsDevice.Viewport.Height - totalMenuHeight) / 2f
                 );
             }
-            else // Poziție fallback dacă fontul lipsește
+            else if (graphicsDevice != null)
             {
-                _menuPosition = new Vector2(graphicsDevice.Viewport.Width / 2f, graphicsDevice.Viewport.Height / 2f - 50);
+                _menuPosition = new Vector2(graphicsDevice.Viewport.Width / 2f, graphicsDevice.Viewport.Height / 2f - (_menuItems.Count * 15f)); // Ajustat pentru numărul de iteme
             }
         }
 
@@ -103,6 +104,7 @@ namespace AshesOfTheEarth.Core
                     Rectangle itemBounds = new Rectangle((int)itemPos.X, (int)itemPos.Y, (int)itemSize.X, (int)itemSize.Y);
                     if (itemBounds.Contains(mousePos))
                     {
+                        _selectedItemIndex = i; // Actualizează indexul selectat
                         SelectItem(_menuItems[i]);
                         break;
                     }
@@ -134,10 +136,13 @@ namespace AshesOfTheEarth.Core
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine("Failed to load save game. Starting Character Selection.");
+                            //System.Diagnostics.Debug.WriteLine("Failed to load save game. Starting Character Selection.");
                             gameStateManager.ChangeState(new CharacterSelectionState());
                         }
                     }
+                    break;
+                case "Settings": // <<< CAZ NOU PENTRU SETĂRI
+                    gameStateManager.ChangeState(new SettingsState());
                     break;
                 case "Exit":
                     ServiceLocator.Get<Game>().Exit();

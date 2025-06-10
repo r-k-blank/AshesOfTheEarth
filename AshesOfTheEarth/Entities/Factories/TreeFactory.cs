@@ -57,12 +57,13 @@ namespace AshesOfTheEarth.Entities.Factories
             }
 
             Entity tree = new Entity($"Tree_{treeType}");
-            tree.AddComponent(new TransformComponent { Position = position, Scale = Vector2.One * 3f }); // Mărime exemplu
-
+            var transform = new TransformComponent { Position = position, Scale = Vector2.One * 3f };
+            tree.AddComponent(transform);
             // SpriteComponent
+            float visualRootAnchorY = texture.Height * 0.75f;
             var spriteComp = new SpriteComponent(texture);
             // Ajustează originea la baza copacului pentru plasare și sortare corectă
-            spriteComp.Origin = new Vector2(0, 0); // 10% de jos
+            spriteComp.Origin = new Vector2(texture.Width / 2f, visualRootAnchorY);
             spriteComp.LayerDepth = 0.4f + (position.Y / (Utils.Settings.DefaultWorldHeight * Utils.Settings.WorldTileHeight * 2f)); // Adâncime bazată pe Y
             tree.AddComponent(spriteComp);
 
@@ -97,10 +98,10 @@ namespace AshesOfTheEarth.Entities.Factories
             // ColliderComponent (pentru interacțiune și pentru a bloca mișcarea)
             // Dreptunghiul trebuie să fie la baza copacului, unde e trunchiul
             // Lățimea mai mică decât sprite-ul, înălțimea și mai mică.
-            float colliderWidth = texture.Width * 0.1f * tree.GetComponent<TransformComponent>().Scale.X; // Trunchi și mai subțire pentru coliziune
-            float colliderHeight = texture.Height * 0.4f * tree.GetComponent<TransformComponent>().Scale.Y;
+            float colliderWidth = texture.Width * 0.2f * tree.GetComponent<TransformComponent>().Scale.X; // Trunchi și mai subțire pentru coliziune
+            float colliderHeight = texture.Height * 0.1f * tree.GetComponent<TransformComponent>().Scale.Y;
             // Offset Y pentru a plasa coliderul la baza sprite-ului, presupunând originea sprite-ului e la (width/2, height)
-            Vector2 colliderOffset = new Vector2(colliderWidth, -colliderHeight / 2f);
+            Vector2 colliderOffset = new Vector2(0, -colliderHeight / 2f);
             if (spriteComp.Origin.Y < texture.Height * 1f) // Dacă originea NU e la bază
             {
                 // Ajustează offsetul dacă originea e în centru sau altundeva
@@ -112,11 +113,11 @@ namespace AshesOfTheEarth.Entities.Factories
 
 
             tree.AddComponent(new ColliderComponent(
-                new Rectangle(0, 1, (int)colliderWidth, (int)colliderHeight), // Centrat pe Offset
+                new Rectangle(0, 0, (int)colliderWidth, (int)colliderHeight), // Dimensiuni relative la centrul coliderului
                 colliderOffset,
                 isSolid: true
-                ));
-            System.Diagnostics.Debug.WriteLine($"Created {treeType} at {position}");
+             ));
+            //System.Diagnostics.Debug.WriteLine($"Created {treeType} at {position}");
             return tree;
         }
     }

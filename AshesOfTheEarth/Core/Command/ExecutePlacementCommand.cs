@@ -40,7 +40,7 @@ namespace AshesOfTheEarth.Core.Input.Command
             ItemData itemDataToPlace = placementValidator.GetItemDataForPlacement(playerController.CurrentPlacingItemType);
             if (itemDataToPlace == null || !inventory.HasItem(playerController.CurrentPlacingItemType, 1))
             {
-                System.Diagnostics.Debug.WriteLine($"ExecutePlacementCommand: Cannot place {playerController.CurrentPlacingItemType}, item data missing or not in inventory.");
+                //System.Diagnostics.Debug.WriteLine($"ExecutePlacementCommand: Cannot place {playerController.CurrentPlacingItemType}, item data missing or not in inventory.");
                 playerController.IsInPlacementMode = false;
                 return;
             }
@@ -63,7 +63,7 @@ namespace AshesOfTheEarth.Core.Input.Command
 
                 entityManager.AddEntity(placedEntity);
                 inventory.RemoveItem(playerController.CurrentPlacingItemType, 1);
-                System.Diagnostics.Debug.WriteLine($"Placed {itemDataToPlace.Name} at {playerController.PlacementPreviewPosition}");
+                //System.Diagnostics.Debug.WriteLine($"Placed {itemDataToPlace.Name} at {playerController.PlacementPreviewPosition}");
 
                 if (!inventory.HasItem(playerController.CurrentPlacingItemType, 1))
                 {
@@ -72,13 +72,13 @@ namespace AshesOfTheEarth.Core.Input.Command
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"ExecutePlacementCommand: Failed to create entity for {itemDataToPlace.EntityToPlaceTag}.");
+                //System.Diagnostics.Debug.WriteLine($"ExecutePlacementCommand: Failed to create entity for {itemDataToPlace.EntityToPlaceTag}.");
                 playerController.IsInPlacementMode = false;
             }
         }
         protected override void OnGameplayConditionFailed(Entity entity, GameTime gameTime)
         {
-            System.Diagnostics.Debug.WriteLine($"ExecutePlacementCommand: Gameplay conditions failed (not in placement mode or placement invalid).");
+            //System.Diagnostics.Debug.WriteLine($"ExecutePlacementCommand: Gameplay conditions failed (not in placement mode or placement invalid).");
         }
     }
 }

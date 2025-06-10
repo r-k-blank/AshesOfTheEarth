@@ -50,17 +50,33 @@ namespace AshesOfTheEarth.Entities.Factories.Mobs
             }
 
             Entity werewolf = new Entity(werewolfType.ToString());
-            werewolf.AddComponent(new TransformComponent { Position = position, Scale = Vector2.One * 1.8f });
-            werewolf.AddComponent(new SpriteComponent());
+
+            var mobTransform = new TransformComponent { Position = position, Scale = Vector2.One * 1.8f }; // Exemplu de scală
+            werewolf.AddComponent(mobTransform);
             werewolf.AddComponent(new AnimationComponent(activeSheet, GetWerewolfAnimations(activeSheet)));
+            werewolf.AddComponent(new SpriteComponent());
             werewolf.AddComponent(new AIComponent(position));
 
             var loot = new List<LootDropInfo> { new LootDropInfo(ItemType.Flint, 1, 3, 0.6f) }; // Placeholder WerewolfPelt
             werewolf.AddComponent(new LootTableComponent(loot));
 
-            var collider = new ColliderComponent(new Rectangle(0, 0, (int)(35 * 2.1f), (int)(60 * 2.1f)), new Vector2(0, 10 * 2.1f), true);
-            werewolf.AddComponent(collider);
+            int frameW = 128; // activeSheet.FrameWidth;
+            int frameH = 128; // activeSheet.FrameHeight;
 
+            float colliderWidthPercentage = 0.35f; // Cât de lat e corpul solid
+            float colliderHeightPercentage = 0.6f; // Cât de înaltă e partea solidă de la picioare în sus
+
+            float actualColliderWidth = frameW * colliderWidthPercentage * mobTransform.Scale.X;
+            float actualColliderHeight = frameH * colliderHeightPercentage * mobTransform.Scale.Y;
+
+            // Baza coliderului la Transform.Position.Y, extins în sus
+            Vector2 mobColliderOffset = new Vector2(0, -actualColliderHeight / 2f);
+
+            werewolf.AddComponent(new ColliderComponent(
+                new Rectangle(0, 0, (int)actualColliderWidth, (int)actualColliderHeight),
+                mobColliderOffset,
+                true
+            ));
             float health = 90f;
             float damage = 22f;
             float speed = 75f;

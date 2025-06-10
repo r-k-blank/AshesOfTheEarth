@@ -17,7 +17,7 @@ namespace AshesOfTheEarth.Graphics.Animation
             Frames = frames ?? throw new ArgumentNullException(nameof(frames));
             if (Frames.Count == 0)
             {
-                System.Diagnostics.Debug.WriteLine($"Warning: AnimationData '{name}' created with zero frames.");
+                //System.Diagnostics.Debug.WriteLine($"Warning: AnimationData '{name}' created with zero frames.");
             }
             IsLooping = isLooping;
             TotalDuration = Frames.Sum(f => f.Duration > 0 ? f.Duration : 0.01f);

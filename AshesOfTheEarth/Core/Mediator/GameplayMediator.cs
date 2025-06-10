@@ -60,7 +60,7 @@ namespace AshesOfTheEarth.Core.Mediator
                     {
                         if (actor.Tag == "Player")
                         {
-                            System.Diagnostics.Debug.WriteLine("Mediator: Player has died. Game Over sequence should start.");
+                            //System.Diagnostics.Debug.WriteLine("Mediator: Player has died. Game Over sequence should start.");
                         }
                         else
                         {
@@ -81,7 +81,7 @@ namespace AshesOfTheEarth.Core.Mediator
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine("Mediator Error: TimeManager not available for EntityDied timeout.");
+                                //System.Diagnostics.Debug.WriteLine("Mediator Error: TimeManager not available for EntityDied timeout.");
                                 var dropPosition = actor.GetComponent<TransformComponent>()?.Position ?? Vector2.Zero;
                                 _dropGenerationSystem?.GenerateDrops(actor, dropPosition);
                                 _entityManager.RemoveEntity(actor);
@@ -99,14 +99,14 @@ namespace AshesOfTheEarth.Core.Mediator
                 case GameplayEvent.PlayerDamaged:
                     if (actor != null && payload is float damageAmount && actor.Tag == "Player")
                     {
-                        System.Diagnostics.Debug.WriteLine($"Mediator: Player {actor.Tag} took {damageAmount} damage.");
+                        //System.Diagnostics.Debug.WriteLine($"Mediator: Player {actor.Tag} took {damageAmount} damage.");
                     }
                     break;
 
                 case GameplayEvent.EntityDamaged:
                     if (actor != null && payload is float dmgAmount && actor.Tag != "Player")
                     {
-                        System.Diagnostics.Debug.WriteLine($"Mediator: Entity {actor.Tag} took {dmgAmount} damage.");
+                        //System.Diagnostics.Debug.WriteLine($"Mediator: Entity {actor.Tag} took {dmgAmount} damage.");
                     }
                     break;
             }

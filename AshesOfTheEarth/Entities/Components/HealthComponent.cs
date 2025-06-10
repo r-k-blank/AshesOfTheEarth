@@ -21,7 +21,7 @@
             {
                 CurrentHealth = 0;
             }
-            System.Diagnostics.Debug.WriteLine($"Entity took {amount} damage. Health: {CurrentHealth}/{MaxHealth}");
+            //System.Diagnostics.Debug.WriteLine($"Entity took {amount} damage. Health: {CurrentHealth}/{MaxHealth}");
             // TODO: Ar putea declanșa un eveniment "EntityDamaged"
         }
 
@@ -33,7 +33,7 @@
             {
                 CurrentHealth = MaxHealth;
             }
-            System.Diagnostics.Debug.WriteLine($"Entity healed {amount}. Health: {CurrentHealth}/{MaxHealth}");
+            //System.Diagnostics.Debug.WriteLine($"Entity healed {amount}. Health: {CurrentHealth}/{MaxHealth}");
         }
     }
 }
