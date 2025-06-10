@@ -11,10 +11,10 @@ namespace AshesOfTheEarth.Entities
         private readonly Dictionary<ulong, Entity> _entities;
         private readonly List<Entity> _entitiesToAdd;
         private readonly List<ulong> _entitiesToRemove;
-
         private readonly Dictionary<Type, List<Entity>> _componentCache;
         private Entity _playerCache;
-
+        private readonly SpatialHash<Entity> _spatialHash;
+        private const int SPATIAL_HASH_CELL_SIZE = 128;
 
         public EntityManager()
         {
@@ -22,6 +22,7 @@ namespace AshesOfTheEarth.Entities
             _entitiesToAdd = new List<Entity>();
             _entitiesToRemove = new List<ulong>();
             _componentCache = new Dictionary<Type, List<Entity>>();
+            _spatialHash = new SpatialHash<Entity>(SPATIAL_HASH_CELL_SIZE);
         }
 
         public void AddEntity(Entity entity)
@@ -29,11 +30,13 @@ namespace AshesOfTheEarth.Entities
             if (entity == null || _entities.ContainsKey(entity.Id) || _entitiesToAdd.Contains(entity)) return;
             _entitiesToAdd.Add(entity);
             if (entity.Tag == "Player") _playerCache = entity;
+
         }
 
         public void RemoveEntity(ulong entityId)
         {
             if (!_entities.ContainsKey(entityId) || _entitiesToRemove.Contains(entityId)) return;
+
             _entitiesToRemove.Add(entityId);
             if (_playerCache != null && _playerCache.Id == entityId) _playerCache = null;
         }
@@ -41,7 +44,6 @@ namespace AshesOfTheEarth.Entities
         {
             if (entity != null) RemoveEntity(entity.Id);
         }
-
 
         public Entity GetEntity(ulong entityId)
         {
@@ -57,7 +59,6 @@ namespace AshesOfTheEarth.Entities
             if (tag == "Player" && entity != null) _playerCache = entity;
             return entity;
         }
-
 
         public IEnumerable<Entity> GetAllEntities() => _entities.Values;
 
@@ -116,7 +117,6 @@ namespace AshesOfTheEarth.Entities
             return _entities.Values.Where(e => componentTypes.All(type => typeof(IComponent).IsAssignableFrom(type) && e.HasComponents(type)));
         }
 
-
         public void Update(GameTime gameTime)
         {
             ProcessQueues();
@@ -138,6 +138,13 @@ namespace AshesOfTheEarth.Entities
                         _entities.Add(entity.Id, entity);
                         UpdateComponentCacheAdd(entity);
                         if (entity.Tag == "Player") _playerCache = entity;
+
+                        var transform = entity.GetComponent<TransformComponent>();
+                        var collider = entity.GetComponent<ColliderComponent>();
+                        if (transform != null && collider != null)
+                        {
+                            _spatialHash.Add(entity, collider.GetWorldBounds(transform));
+                        }
                     }
                 }
                 _entitiesToAdd.Clear();
@@ -149,6 +156,13 @@ namespace AshesOfTheEarth.Entities
                 {
                     if (_entities.TryGetValue(entityId, out var entity))
                     {
+                        var transform = entity.GetComponent<TransformComponent>();
+                        var collider = entity.GetComponent<ColliderComponent>();
+                        if (transform != null && collider != null)
+                        {
+                            _spatialHash.Remove(entity, collider.GetWorldBounds(transform));
+                        }
+
                         UpdateComponentCacheRemove(entity);
                         _entities.Remove(entityId);
                         if (_playerCache != null && _playerCache.Id == entityId) _playerCache = null;
@@ -156,6 +170,33 @@ namespace AshesOfTheEarth.Entities
                 }
                 _entitiesToRemove.Clear();
             }
+        }
+
+        public void OnEntityMoved(Entity entity, Vector2 oldPosition)
+        {
+            var transform = entity.GetComponent<TransformComponent>();
+            var collider = entity.GetComponent<ColliderComponent>();
+
+            if (transform != null && collider != null)
+            {
+                var oldWorldBounds = new Rectangle(
+                    (int)(oldPosition.X + collider.Offset.X - collider.Bounds.Width / 2f),
+                    (int)(oldPosition.Y + collider.Offset.Y - collider.Bounds.Height / 2f),
+                    collider.Bounds.Width,
+                    collider.Bounds.Height
+                );
+                var newWorldBounds = collider.GetWorldBounds(transform);
+
+                if (oldWorldBounds != newWorldBounds)
+                {
+                    _spatialHash.Update(entity, oldWorldBounds, newWorldBounds);
+                }
+            }
+        }
+
+        public IEnumerable<Entity> GetEntitiesInBounds(Rectangle queryBounds)
+        {
+            return _spatialHash.GetNearby(queryBounds);
         }
 
         private void UpdateComponentCacheAdd(Entity entity)
@@ -184,6 +225,7 @@ namespace AshesOfTheEarth.Entities
 
         public void ClearAllEntities()
         {
+            _spatialHash.Clear();
             _entities.Clear();
             _entitiesToAdd.Clear();
             _entitiesToRemove.Clear();

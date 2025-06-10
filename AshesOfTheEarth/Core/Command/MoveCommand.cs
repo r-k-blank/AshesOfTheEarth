@@ -46,6 +46,7 @@ namespace AshesOfTheEarth.Core.Input.Command
             var sprite = entity.GetComponent<SpriteComponent>();
             var controller = entity.GetComponent<PlayerControllerComponent>();
             var inputManager = ServiceLocator.Get<InputManager>();
+            var entityManager = ServiceLocator.Get<EntityManager>();
 
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
             float actualSpeed = controller.WalkSpeed;
@@ -69,6 +70,7 @@ namespace AshesOfTheEarth.Core.Input.Command
                 moveVector.Normalize();
 
             Vector2 velocity = moveVector * actualSpeed;
+            Vector2 oldPosition = transform.Position;
             Vector2 nextPosition = transform.Position + velocity * deltaTime;
             bool didMove = false;
 
@@ -98,6 +100,8 @@ namespace AshesOfTheEarth.Core.Input.Command
 
             if (didMove)
             {
+                entityManager.OnEntityMoved(entity, oldPosition);
+
                 string targetAnimationName;
                 if (Math.Abs(moveVector.X) > Math.Abs(moveVector.Y))
                 {
@@ -125,7 +129,6 @@ namespace AshesOfTheEarth.Core.Input.Command
             else if (controller.IsAttacking) reason = "Player is attacking";
             else if (_direction == Vector2.Zero) reason = "No movement direction";
             else if (entity.GetComponent<TransformComponent>() == null) reason = "No TransformComponent";
-            //System.Diagnostics.Debug.WriteLine($"Move command gameplay conditions not met. Reason: {reason}");
         }
     }
 }

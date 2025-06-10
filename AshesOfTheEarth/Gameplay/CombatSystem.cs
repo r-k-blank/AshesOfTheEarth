@@ -14,7 +14,6 @@ using AshesOfTheEarth.Gameplay.Items;
 using AshesOfTheEarth.Graphics;
 using AshesOfTheEarth.Gameplay.Systems;
 
-
 namespace AshesOfTheEarth.Gameplay
 {
     public class CombatSystem
@@ -46,7 +45,6 @@ namespace AshesOfTheEarth.Gameplay
 
             if (playerTransform == null || playerInventory == null || animationComp == null)
             {
-                //System.Diagnostics.Debug.WriteLine("CombatSystem.ProcessPlayerAttack: Missing critical components on player.");
                 return;
             }
 
@@ -73,15 +71,11 @@ namespace AshesOfTheEarth.Gameplay
 
             Rectangle playerAttackHitbox = CalculatePlayerAttackHitbox(playerTransform, attackDirection, attackRange, animationComp);
 
-            if (Settings.DebugShowColliders && _pixelTexture != null)
-            {
-                //System.Diagnostics.Debug.WriteLine($"[DEBUG] Player Attack Hitbox: {playerAttackHitbox} (Dir: {attackDirection}, Range: {attackRange})");
-                // Adaugă aici logica de a pasa playerAttackHitbox către un sistem de desenare debug, dacă ai unul.
-                // Exemplu: ServiceLocator.Get<DebugDrawSystem>()?.AddRectangle(playerAttackHitbox, Color.Orange, 1);
-            }
+            var potentialTargets = _entityManager.GetEntitiesInBounds(playerAttackHitbox);
+            var mobsInRange = potentialTargets.Where(e => e.Tag != "Player" &&
+                                                    e.GetComponent<HealthComponent>()?.IsDead == false &&
+                                                    e.HasComponent<AIComponent>());
 
-            var mobsInRange = _entityManager.GetAllEntitiesWithComponents<TransformComponent, HealthComponent, AIComponent, ColliderComponent>()
-                                  .Where(e => e.Tag != "Player" && e.GetComponent<HealthComponent>()?.IsDead == false);
 
             int targetsHitThisSwing = 0;
             foreach (var mob in mobsInRange)
@@ -96,7 +90,6 @@ namespace AshesOfTheEarth.Gameplay
                     var mobAI = mob.GetComponent<AIComponent>();
 
                     mobHealth.TakeDamage(baseDamage);
-                    //System.Diagnostics.Debug.WriteLine($"PLAYER dealt {baseDamage} DMG to {mob.Tag}. Mob HP: {mobHealth.CurrentHealth}/{mobHealth.MaxHealth}");
 
                     _gameplayMediator.Notify(this, GameplayEvent.EntityDamaged, mob, baseDamage, gameTime);
 
@@ -119,14 +112,13 @@ namespace AshesOfTheEarth.Gameplay
             }
             if (targetsHitThisSwing == 0)
             {
-                // System.Diagnostics.Debug.WriteLine($"PLAYER attack missed. Hitbox: {playerAttackHitbox} with direction {attackDirection}");
             }
         }
 
         public void Update(GameTime gameTime)
         {
             EnsureMediator();
-            Entity player = _entityManager.GetAllEntities().FirstOrDefault(e => e.HasComponent<PlayerControllerComponent>());
+            Entity player = _entityManager.GetEntityByTag("Player");
             if (player == null || !player.HasComponent<HealthComponent>() || player.GetComponent<HealthComponent>().IsDead) return;
 
             var playerCollider = player.GetComponent<ColliderComponent>();
@@ -152,13 +144,12 @@ namespace AshesOfTheEarth.Gameplay
                     mobAnim.Controller.CurrentAnimationData.Name.Contains("Attack"))
                 {
                     AnimationData currentMobAnimData = mobAnim.Controller.CurrentAnimationData;
-                    float animTotalDuration = currentMobAnimData.TotalDuration();
+                    float animTotalDuration = Graphics.Animation.AnimationDataExtensions.TotalDuration(currentMobAnimData);
 
                     float hitMomentPercentage = 0.5f;
                     float hitWindowStartOffset = 0.1f;
                     float hitWindowEndOffset = 0.15f;
 
-                    // float hitTimeInAnimation = animTotalDuration * hitMomentPercentage; // Nu e folosit direct
                     float hitWindowStartTime = Math.Max(0, animTotalDuration * (hitMomentPercentage - hitWindowStartOffset));
                     float hitWindowEndTime = Math.Min(animTotalDuration, animTotalDuration * (hitMomentPercentage + hitWindowEndOffset));
 
@@ -166,29 +157,22 @@ namespace AshesOfTheEarth.Gameplay
                         mobAI.StateTimer >= hitWindowStartTime &&
                         mobAI.StateTimer <= hitWindowEndTime)
                     {
-                        float distToPlayerSq = Vector2.DistanceSquared(mobTransform.Position, playerTransform.Position);
-                        if (distToPlayerSq < mobStats.AttackRange * mobStats.AttackRange &&
-                            ServiceLocator.Get<AISystem>().IsPlayerInAttackCone(mobTransform, playerTransform, mobAI.FacingDirection, mobStats.AttackConeAngleDegrees))
-                        {
-                            Rectangle mobAttackBox = CalculateMobAttackHitbox(mobTransform, mobStats, mobSprite, mobAnim);
-                            if (Settings.DebugShowColliders && _pixelTexture != null)
-                            {
-                                //System.Diagnostics.Debug.WriteLine($"[DEBUG] Mob ({mob.Tag}) Attack Hitbox: {mobAttackBox}");
-                            }
+                        Rectangle mobAttackBox = CalculateMobAttackHitbox(mobTransform, mobStats, mobSprite, mobAnim);
+                        var potentialTargets = _entityManager.GetEntitiesInBounds(mobAttackBox);
+                        Entity playerCandidate = potentialTargets.FirstOrDefault(e => e.Id == player.Id);
 
-                            if (playerCollider.GetWorldBounds(playerTransform).Intersects(mobAttackBox))
-                            {
-                                playerHealth.TakeDamage(mobStats.Damage);
-                                _gameplayMediator.Notify(this, GameplayEvent.PlayerDamaged, player, mobStats.Damage, gameTime);
-                                //System.Diagnostics.Debug.WriteLine($"{mob.Tag} dealt {mobStats.Damage} DMG to PLAYER. Player HP: {playerHealth.CurrentHealth}/{playerHealth.MaxHealth}");
-                                mobAI.DamageAppliedThisAttackCycle = true;
-                            }
+                        if (playerCandidate != null &&
+                            ServiceLocator.Get<AISystem>().IsPlayerInAttackCone(mobTransform, playerTransform, mobAI.FacingDirection, mobStats.AttackConeAngleDegrees) &&
+                            playerCollider.GetWorldBounds(playerTransform).Intersects(mobAttackBox))
+                        {
+                            playerHealth.TakeDamage(mobStats.Damage);
+                            _gameplayMediator.Notify(this, GameplayEvent.PlayerDamaged, player, mobStats.Damage, gameTime);
+                            mobAI.DamageAppliedThisAttackCycle = true;
                         }
                     }
                 }
             }
         }
-
 
         private Rectangle CalculatePlayerAttackHitbox(TransformComponent playerTransform, string direction, float range, AnimationComponent playerAnim)
         {

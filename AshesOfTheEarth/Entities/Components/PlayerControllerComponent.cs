@@ -30,7 +30,6 @@ namespace AshesOfTheEarth.Entities.Components
         private Entity _playerEntity;
         private LightEmitterComponent _torchLightComponent;
 
-
         public bool IsAttacking { get; set; } = false;
         public float AttackCooldownTimer { get; set; } = 0f;
         public const float ATTACK_COOLDOWN_VALUE = 0.4f;
@@ -42,7 +41,6 @@ namespace AshesOfTheEarth.Entities.Components
         public ItemType CurrentPlacingItemType { get; set; } = ItemType.None;
         public Vector2 PlacementPreviewPosition { get; set; }
         public bool IsCurrentPlacementValid { get; set; } = false;
-
 
         public PlayerControllerComponent()
         {
@@ -59,7 +57,14 @@ namespace AshesOfTheEarth.Entities.Components
             _timeManager = ServiceLocator.Get<TimeManager>();
 
             _torchLightComponent = new LightEmitterComponent(radius: 180f, intensity: 0.6f, color: new Color(255, 220, 150), isActive: false, flickerIntensity: 0.05f, flickerSpeed: 7f);
-            _playerEntity.AddComponent(_torchLightComponent);
+            if (!_playerEntity.HasComponent<LightEmitterComponent>())
+            {
+                _playerEntity.AddComponent(_torchLightComponent);
+            }
+            else
+            {
+                _torchLightComponent = _playerEntity.GetComponent<LightEmitterComponent>();
+            }
         }
 
         public void Update(GameTime gameTime)
@@ -71,7 +76,6 @@ namespace AshesOfTheEarth.Entities.Components
                 Initialize(_playerEntity);
             }
             if (_inputManager == null) _inputManager = ServiceLocator.Get<InputManager>();
-
 
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
@@ -99,7 +103,6 @@ namespace AshesOfTheEarth.Entities.Components
             }
         }
 
-
         public void InitiateAttack(GameTime gameTime)
         {
             if (_playerEntity == null) return;
@@ -126,7 +129,7 @@ namespace AshesOfTheEarth.Entities.Components
                 if (attackAnimDirection == "Left") sprite.Effects = SpriteEffects.FlipHorizontally;
                 else if (attackAnimDirection == "Right") sprite.Effects = SpriteEffects.None;
 
-                float attackDuration = AnimationDataExtensions.TotalDuration(attackAnimData);
+                float attackDuration = Graphics.Animation.AnimationDataExtensions.TotalDuration(attackAnimData);
                 float hitMomentDelay = attackDuration * 0.4f;
 
                 var currentMediator = _gameplayMediator;
@@ -174,31 +177,23 @@ namespace AshesOfTheEarth.Entities.Components
 
             if (_worldManager == null) return true;
 
-            // Calculează poziția picioarelor la locația țintă
             Vector2 feetPosition = targetPosition;
-            if (playerCollider != null && playerTransform != null) // Asigură-te că playerTransform nu e null aici
+            if (playerCollider != null && playerTransform != null)
             {
-                // Presupunând că playerTransform.Position este centrul sprite-ului la animațiile curente,
-                // și playerCollider.Offset este relativ la acest centru,
-                // partea de jos a coliderului ar fi la:
-                // targetPosition.Y + playerCollider.Offset.Y + (playerCollider.Bounds.Height / 2f)
                 feetPosition = new Vector2(
-                    targetPosition.X + playerCollider.Offset.X, // Centrul X al coliderului
-                    targetPosition.Y + playerCollider.Offset.Y + playerCollider.Bounds.Height / 2f // Partea de jos Y a coliderului
+                    targetPosition.X + playerCollider.Offset.X,
+                    targetPosition.Y + playerCollider.Offset.Y + playerCollider.Bounds.Height / 2f
                 );
             }
-            // else, dacă nu există colider, folosește targetPosition (mai puțin precis)
 
-            if (!_worldManager.IsPositionWalkable(feetPosition)) // Verifică la picioare
+            if (!_worldManager.IsPositionWalkable(feetPosition))
             {
-                // System.Diagnostics.Debug.WriteLine($"[CanMoveTo] Tile at feet {feetPosition} (from target {targetPosition}) is not walkable.");
                 return false;
             }
 
-            // Verificarea coliziunii cu alte entități solide (pare OK)
-            if (playerCollider == null || playerTransform == null) // playerTransform deja verificat mai sus
+            if (playerCollider == null || playerTransform == null)
             {
-                return true; // Fără colider, se poate mișca dacă tile-ul e mersibil
+                return true;
             }
 
             Rectangle futurePlayerBounds = new Rectangle(
@@ -208,18 +203,13 @@ namespace AshesOfTheEarth.Entities.Components
                 playerCollider.Bounds.Height
             );
 
-            // Optimizare: Obține entitățile solide o singură dată per frame în AISystem și paseaz-o sau acceseaz-o global
-            // Pentru moment, lăsăm așa, dar e un punct de optimizare.
-            var nearbySolidEntities = _entityManager.GetAllEntitiesWithComponents<TransformComponent, ColliderComponent>()
-                                                 .Where(e => e != entity && e.GetComponent<ColliderComponent>().IsSolid);
-
-            foreach (var solidEntity in nearbySolidEntities)
+            var nearbyCandidates = _entityManager.GetEntitiesInBounds(futurePlayerBounds);
+            foreach (var solidEntity in nearbyCandidates.Where(e => e != entity && e.GetComponent<ColliderComponent>()?.IsSolid == true))
             {
                 var solidTransform = solidEntity.GetComponent<TransformComponent>();
                 var solidCollider = solidEntity.GetComponent<ColliderComponent>();
                 if (futurePlayerBounds.Intersects(solidCollider.GetWorldBounds(solidTransform)))
                 {
-                    // System.Diagnostics.Debug.WriteLine($"[CanMoveTo] Collision with solid entity {solidEntity.Tag} at future bounds.");
                     return false;
                 }
             }

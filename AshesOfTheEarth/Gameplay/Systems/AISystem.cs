@@ -12,7 +12,6 @@ using AshesOfTheEarth.Core.Services;
 using AshesOfTheEarth.Core.Time;
 using AshesOfTheEarth.Entities;
 
-
 namespace AshesOfTheEarth.Gameplay.Systems
 {
     public class AISystem
@@ -37,51 +36,40 @@ namespace AshesOfTheEarth.Gameplay.Systems
         private void EnsurePlayerReference()
         {
             if (_player == null ||
-                !_player.HasComponent<PlayerControllerComponent>() || // Ar trebui să fie ok
+                !_player.HasComponent<PlayerControllerComponent>() ||
                 _player.GetComponent<HealthComponent>()?.IsDead == true)
             {
                 _player = _entityManager.GetAllEntities().FirstOrDefault(e =>
-                e.HasComponent<PlayerControllerComponent>() && // <-- SCHIMBAT
+                e.HasComponent<PlayerControllerComponent>() &&
                 e.GetComponent<HealthComponent>()?.IsDead == false);
             }
         }
-        private void EnsureMediatorAndTimemanager() // Poți crea o metodă helper dacă o folosești des
+        private void EnsureMediatorAndTimemanager()
         {
             if (_gameplayMediator == null)
             {
                 _gameplayMediator = ServiceLocator.Get<IGameplayMediator>();
                 if (_gameplayMediator == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("CRITICAL ERROR: GameplayMediator could not be retrieved from ServiceLocator in AISystem.");
-                    // Poți arunca o excepție aici sau gestiona eroarea altfel,
-                    // dar jocul probabil nu va funcționa corect fără mediator.
                 }
             }
-            if (_timeManager == null) // Asigură-te și de TimeManager dacă e folosit în apropiere
+            if (_timeManager == null)
             {
                 _timeManager = ServiceLocator.Get<TimeManager>();
                 if (_timeManager == null)
                 {
-                    System.Diagnostics.Debug.WriteLine("CRITICAL ERROR: TimeManager could not be retrieved from ServiceLocator in AISystem.");
                 }
             }
         }
         public void InvalidatePlayerReference()
         {
             this._player = null;
-            System.Diagnostics.Debug.WriteLine("[AISystem] Player reference invalidated. Will re-ensure on next update.");
         }
         public void Update(GameTime gameTime)
         {
             EnsurePlayerReference();
             var playerTransform = _player?.GetComponent<TransformComponent>();
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
-
-            _solidNonPlayerEntitiesCache = _entityManager.GetAllEntities()
-                .Where(e => e.Tag != "Player" &&
-                            e.HasComponent<ColliderComponent>() &&
-                            e.GetComponent<ColliderComponent>().IsSolid)
-                .ToList();
 
             var mobs = _entityManager.GetAllEntitiesWithComponents<AIComponent, TransformComponent, MobStatsComponent, AnimationComponent, HealthComponent, SpriteComponent>().ToList();
 
@@ -112,11 +100,20 @@ namespace AshesOfTheEarth.Gameplay.Systems
                     ai.CurrentState != AIState.Fleeing && ai.CurrentState != AIState.Hurt &&
                     ai.CurrentState != AIState.SpecialAction)
                 {
-                    float distToPlayerSq = Vector2.DistanceSquared(transform.Position, playerTransform.Position);
-                    bool isAggressive = !(mob.Tag.Contains("Deer") || mob.Tag.Contains("Rabbit"));
 
-                    if (distToPlayerSq < stats.AggroRange * stats.AggroRange)
+                    Rectangle visionBounds = new Rectangle(
+                        (int)(transform.Position.X - stats.AggroRange),
+                        (int)(transform.Position.Y - stats.AggroRange),
+                        (int)(stats.AggroRange * 2),
+                        (int)(stats.AggroRange * 2)
+                    );
+                    var nearbyEntities = _entityManager.GetEntitiesInBounds(visionBounds);
+                    bool playerInProximity = nearbyEntities.Any(e => e.Id == _player?.Id);
+
+
+                    if (playerInProximity && Vector2.DistanceSquared(transform.Position, playerTransform.Position) < stats.AggroRange * stats.AggroRange)
                     {
+                        bool isAggressive = !(mob.Tag.Contains("Deer") || mob.Tag.Contains("Rabbit"));
                         if (isAggressive)
                         {
                             ai.Target = _player;
@@ -189,7 +186,7 @@ namespace AshesOfTheEarth.Gameplay.Systems
                 if (collider != null) collider.IsSolid = false;
                 ai.StateTimer = 0f;
 
-                 _gameplayMediator.Notify(this, GameplayEvent.EntityDied, mob, mob.GetComponent<HealthComponent>());
+                _gameplayMediator.Notify(this, GameplayEvent.EntityDied, mob, mob.GetComponent<HealthComponent>());
             }
 
             if (anim.Controller.CurrentAnimationData?.Name == "Dead" && anim.Controller.AnimationFinished && !anim.Controller.IsPausedOnFrame)
@@ -203,7 +200,7 @@ namespace AshesOfTheEarth.Gameplay.Systems
             var currentAnimData = anim.Controller.CurrentAnimationData;
             if (currentAnimData != null && currentAnimData.Name.Contains("Hurt"))
             {
-                return currentAnimData.TotalDuration();
+                return Graphics.Animation.AnimationDataExtensions.TotalDuration(currentAnimData);
             }
             if (currentAnimData != null && currentAnimData.Name.Contains("Fall")) return 1.2f;
             return 0.4f;
@@ -269,10 +266,11 @@ namespace AshesOfTheEarth.Gameplay.Systems
             return anim.Animations.ContainsKey("Run") ? "Run" : "Walk";
         }
 
+
         private void HandlePatrollingState(Entity mob, AIComponent ai, TransformComponent transform, AnimationComponent anim, MobStatsComponent stats, float deltaTime)
         {
             anim.PlayAnimation(GetAppropriateRunAnimationName(mob, anim));
-            MoveTowards(transform, ai.PatrolTargetPosition, stats.MovementSpeed * deltaTime, mob, _solidNonPlayerEntitiesCache);
+            MoveTowards(transform, ai.PatrolTargetPosition, stats.MovementSpeed * deltaTime, mob);
 
             if (Vector2.DistanceSquared(transform.Position, ai.PatrolTargetPosition) < 30f * 30f)
             {
@@ -306,12 +304,11 @@ namespace AshesOfTheEarth.Gameplay.Systems
                 AnimationData attackAnimData = GetBestAttackAnimation(anim, mob.Tag.Contains("Minotaur"));
                 if (attackAnimData != null)
                 {
-                    ai.AttackActionTimer = attackAnimData.TotalDuration();
+                    ai.AttackActionTimer = Graphics.Animation.AnimationDataExtensions.TotalDuration(attackAnimData);
                 }
                 else
                 {
                     ai.AttackActionTimer = 0.8f;
-                    System.Diagnostics.Debug.WriteLine($"Warning: No attack animation found for {mob.Tag}. Using default attack duration.");
                 }
                 return;
             }
@@ -324,7 +321,7 @@ namespace AshesOfTheEarth.Gameplay.Systems
             else
             {
                 anim.PlayAnimation(GetAppropriateRunAnimationName(mob, anim));
-                MoveTowards(transform, playerTransform.Position, stats.MovementSpeed * stats.RunSpeedMultiplier * deltaTime, mob, _solidNonPlayerEntitiesCache);
+                MoveTowards(transform, playerTransform.Position, stats.MovementSpeed * stats.RunSpeedMultiplier * deltaTime, mob);
 
                 ai.CurrentChaseTimeWithoutAttack += deltaTime;
                 if (ai.CurrentChaseTimeWithoutAttack > ai.MaxChaseTimeWithoutAttack)
@@ -357,6 +354,7 @@ namespace AshesOfTheEarth.Gameplay.Systems
             return null;
         }
 
+
         private void HandleAttackingState(Entity mob, AIComponent ai, AnimationComponent anim, MobStatsComponent stats, TransformComponent playerTransform)
         {
             if (ai.Target == null || playerTransform == null || _player?.GetComponent<HealthComponent>()?.IsDead == true)
@@ -383,15 +381,16 @@ namespace AshesOfTheEarth.Gameplay.Systems
                 ai.CurrentState = AIState.Chasing;
                 ai.StateTimer = 0f;
                 ai.AttackIntervalTimer = 1f / stats.AttackSpeed;
-                ai.DamageAppliedThisAttackCycle = false; // --- Resetează aici ---
+                ai.DamageAppliedThisAttackCycle = false;
                 ai.CurrentChaseTimeWithoutAttack = 0f;
             }
         }
 
+
         private void HandleReturningToPatrolState(Entity mob, AIComponent ai, TransformComponent transform, AnimationComponent anim, MobStatsComponent stats, float deltaTime)
         {
             anim.PlayAnimation("Walk");
-            MoveTowards(transform, ai.LastKnownTargetPosition, stats.MovementSpeed * deltaTime, mob, _solidNonPlayerEntitiesCache);
+            MoveTowards(transform, ai.LastKnownTargetPosition, stats.MovementSpeed * deltaTime, mob);
 
             if (Vector2.DistanceSquared(transform.Position, ai.LastKnownTargetPosition) < 30f * 30f || ai.StateTimer > 10f)
             {
@@ -413,7 +412,7 @@ namespace AshesOfTheEarth.Gameplay.Systems
             }
 
             float distToPlayerSq = Vector2.DistanceSquared(transform.Position, playerTransform.Position);
-            if (distToPlayerSq > (stats.AggroRange + 120f) * (stats.AggroRange + 120f) || ai.StateTimer > 8f)
+            if (distToPlayerSq > (stats.AggroRange + 120f) * (stats.AggroRange + 120f) || ai.StateTimer > 8f) // Give up fleeing after some distance or time
             {
                 ai.Target = null;
                 ai.CurrentState = AIState.Patrolling;
@@ -425,7 +424,7 @@ namespace AshesOfTheEarth.Gameplay.Systems
             anim.PlayAnimation(GetAppropriateRunAnimationName(mob, anim));
             Vector2 fleeDirection = Vector2.Normalize(transform.Position - playerTransform.Position);
             Vector2 fleeTarget = transform.Position + fleeDirection * 150f;
-            MoveTowards(transform, fleeTarget, stats.MovementSpeed * stats.RunSpeedMultiplier * 1.8f * deltaTime, mob, _solidNonPlayerEntitiesCache);
+            MoveTowards(transform, fleeTarget, stats.MovementSpeed * stats.RunSpeedMultiplier * 1.8f * deltaTime, mob);
         }
 
         private void SetNewPatrolTarget(AIComponent ai)
@@ -442,13 +441,14 @@ namespace AshesOfTheEarth.Gameplay.Systems
             ai.PatrolTargetPosition = newPatrolPos;
         }
 
-        private void MoveTowards(TransformComponent transform, Vector2 target, float maxDistanceThisFrame, Entity selfEntity, List<Entity> allSolidEntitiesInProximity)
+        private void MoveTowards(TransformComponent transform, Vector2 target, float maxDistanceThisFrame, Entity selfEntity)
         {
             if (maxDistanceThisFrame <= 0) return;
             Vector2 direction = target - transform.Position;
             if (direction.LengthSquared() < 1.0f)
             {
                 transform.Position = target;
+                _entityManager.OnEntityMoved(selfEntity, target - direction);
                 return;
             }
 
@@ -456,6 +456,7 @@ namespace AshesOfTheEarth.Gameplay.Systems
             direction.Normalize();
 
             Vector2 moveAmount = direction * Math.Min(maxDistanceThisFrame, distanceToTarget);
+            Vector2 oldPosition = transform.Position;
             Vector2 nextPosition = transform.Position + moveAmount;
 
             var selfCollider = selfEntity.GetComponent<ColliderComponent>();
@@ -463,35 +464,41 @@ namespace AshesOfTheEarth.Gameplay.Systems
             if (_worldManager == null || _worldManager.TileMap == null)
             {
                 transform.Position = nextPosition;
+                _entityManager.OnEntityMoved(selfEntity, oldPosition);
                 return;
             }
 
             if (_worldManager.IsPositionWalkable(nextPosition))
             {
-                if (CanMobMoveTo(selfEntity, selfCollider, nextPosition, allSolidEntitiesInProximity))
+                if (CanMobMoveTo(selfEntity, selfCollider, nextPosition))
                 {
                     transform.Position = nextPosition;
+                    _entityManager.OnEntityMoved(selfEntity, oldPosition);
                 }
                 else
                 {
+                    Vector2 oldPosBeforeSlide = transform.Position;
                     Vector2 slidePositionX = new Vector2(nextPosition.X, transform.Position.Y);
-                    if (Math.Abs(moveAmount.X) > 0.01f && _worldManager.IsPositionWalkable(slidePositionX) && CanMobMoveTo(selfEntity, selfCollider, slidePositionX, allSolidEntitiesInProximity))
+                    if (Math.Abs(moveAmount.X) > 0.01f && _worldManager.IsPositionWalkable(slidePositionX) && CanMobMoveTo(selfEntity, selfCollider, slidePositionX))
                     {
                         transform.Position = slidePositionX;
+                        _entityManager.OnEntityMoved(selfEntity, oldPosBeforeSlide);
                     }
                     else
                     {
+                        oldPosBeforeSlide = transform.Position;
                         Vector2 slidePositionY = new Vector2(transform.Position.X, nextPosition.Y);
-                        if (Math.Abs(moveAmount.Y) > 0.01f && _worldManager.IsPositionWalkable(slidePositionY) && CanMobMoveTo(selfEntity, selfCollider, slidePositionY, allSolidEntitiesInProximity))
+                        if (Math.Abs(moveAmount.Y) > 0.01f && _worldManager.IsPositionWalkable(slidePositionY) && CanMobMoveTo(selfEntity, selfCollider, slidePositionY))
                         {
                             transform.Position = slidePositionY;
+                            _entityManager.OnEntityMoved(selfEntity, oldPosBeforeSlide);
                         }
                     }
                 }
             }
         }
 
-        private bool CanMobMoveTo(Entity selfEntity, ColliderComponent selfCollider, Vector2 targetPosition, List<Entity> solidEntitiesInProximity)
+        private bool CanMobMoveTo(Entity selfEntity, ColliderComponent selfCollider, Vector2 targetPosition)
         {
             if (selfCollider == null || !selfCollider.IsSolid) return true;
 
@@ -502,31 +509,17 @@ namespace AshesOfTheEarth.Gameplay.Systems
                 selfCollider.Bounds.Height
             );
 
-            foreach (var otherEntity in solidEntitiesInProximity)
-            {
-                if (otherEntity == selfEntity) continue;
+            var nearbySolidEntities = _entityManager.GetEntitiesInBounds(futureSelfBounds)
+                                          .Where(e => e != selfEntity &&
+                                                      e.GetComponent<ColliderComponent>()?.IsSolid == true);
 
+            foreach (var otherEntity in nearbySolidEntities)
+            {
                 var otherCollider = otherEntity.GetComponent<ColliderComponent>();
                 var otherTransform = otherEntity.GetComponent<TransformComponent>();
-
-                if (otherCollider != null && otherCollider.IsSolid && otherTransform != null)
+                if (futureSelfBounds.Intersects(otherCollider.GetWorldBounds(otherTransform)))
                 {
-                    if (futureSelfBounds.Intersects(otherCollider.GetWorldBounds(otherTransform)))
-                    {
-                        return false;
-                    }
-                }
-            }
-            if (_player != null && _player != selfEntity)
-            {
-                var playerCollider = _player.GetComponent<ColliderComponent>();
-                var playerTransform = _player.GetComponent<TransformComponent>();
-                if (playerCollider != null && playerCollider.IsSolid && playerTransform != null)
-                {
-                    if (futureSelfBounds.Intersects(playerCollider.GetWorldBounds(playerTransform)))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
             return true;

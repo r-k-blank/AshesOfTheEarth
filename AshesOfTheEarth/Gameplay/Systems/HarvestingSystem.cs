@@ -47,12 +47,20 @@ namespace AshesOfTheEarth.Gameplay.Systems
             if (playerTransform == null || playerInventory == null) return;
 
             float interactionRange = 64f;
+            Rectangle interactionArea = new Rectangle(
+                (int)(playerTransform.Position.X - interactionRange / 2),
+                (int)(playerTransform.Position.Y - interactionRange / 2),
+                (int)interactionRange,
+                (int)interactionRange
+            );
+
             Entity closestInteractableEntity = null;
             float minDistanceSq = interactionRange * interactionRange;
 
-            var collectibleEntities = _entityManager.GetAllEntitiesWithComponents<TransformComponent, CollectibleComponent, ColliderComponent>()
-                                          .Where(e => e.IsActive);
-            foreach (var collectibleEntity in collectibleEntities)
+            var nearbyCollectibles = _entityManager.GetEntitiesInBounds(interactionArea)
+                                         .Where(e => e.IsActive && e.HasComponent<CollectibleComponent>());
+
+            foreach (var collectibleEntity in nearbyCollectibles)
             {
                 var collectibleTransform = collectibleEntity.GetComponent<TransformComponent>();
                 float distSq = Vector2.DistanceSquared(playerTransform.Position, collectibleTransform.Position);
@@ -73,8 +81,10 @@ namespace AshesOfTheEarth.Gameplay.Systems
             minDistanceSq = interactionRange * interactionRange;
             closestInteractableEntity = null;
 
-            var harvestableEntities = _entityManager.GetAllEntitiesWithComponents<TransformComponent, ResourceSourceComponent, ColliderComponent>();
-            foreach (var resourceEntity in harvestableEntities)
+            var nearbyHarvestables = _entityManager.GetEntitiesInBounds(interactionArea)
+                                          .Where(e => e.HasComponent<ResourceSourceComponent>());
+
+            foreach (var resourceEntity in nearbyHarvestables)
             {
                 var resourceSource = resourceEntity.GetComponent<ResourceSourceComponent>();
                 if (resourceSource.Depleted && !resourceSource.DestroyOnDepleted) continue;
@@ -129,6 +139,7 @@ namespace AshesOfTheEarth.Gameplay.Systems
             if (resourceSource == null || (resourceSource.Depleted && !resourceSource.DestroyOnDepleted) || playerInventory == null || playerAnimation == null || playerTransform == null || playerController == null || playerSprite == null || playerStats == null) return false;
             if (resourceSource.Depleted && resourceSource.DestroyOnDepleted) return false;
 
+
             float toolEffectiveness = 0.5f;
             ItemData usedToolData = null;
 
@@ -167,12 +178,13 @@ namespace AshesOfTheEarth.Gameplay.Systems
             float attackDuration = 0.5f;
             if (playerAnimation.Animations.TryGetValue(harvestAnimName, out AnimationData animData))
             {
-                attackDuration = animData.TotalDuration;
+                attackDuration = Graphics.Animation.AnimationDataExtensions.TotalDuration(animData);
             }
 
             ServiceLocator.Get<Core.Time.TimeManager>().SetTimeout(() => {
                 playerController.IsAttacking = false;
             }, TimeSpan.FromSeconds(attackDuration));
+
 
             float damageToResource = 10f * toolEffectiveness;
             if (resourceSource.RequiredToolCategory != null && resourceSource.RequiredToolCategory.Equals("Hand", StringComparison.OrdinalIgnoreCase))
